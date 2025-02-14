@@ -5,9 +5,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const spreadsheetTables = document.querySelectorAll('.spreadsheet-table');
   const saveButtons = document.querySelectorAll('.save-btn');
   const logoutButton = document.getElementById('logout-btn');
-  const addRowButtons = document.querySelectorAll('.add-row'); // ✅ Select "Add Pirate" buttons
+  const addRowButtons = document.querySelectorAll('.add-row'); 
 
-  // ✅ Fix: Ensure "Add Pirate" buttons exist before adding event listeners
+  // ✅ Fix: Ensure "Add Pirate" button is not null
   if (addRowButtons.length === 0) {
     console.error("❌ No 'Add Pirate' buttons found!");
   }
@@ -79,8 +79,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const leaderboardData = Array.from(rows).map(row => {
         const inputs = row.querySelectorAll('input');
-        const name = inputs[0].value.trim() || "Unknown Pirate"; // ✅ No undefined names
-        const score = parseInt(inputs[1].value) || 0; // ✅ No undefined scores
+        const name = inputs[0].value.trim() || "Unknown Pirate"; 
+        const score = parseInt(inputs[1].value) || 0; 
         return { name, score };
       });
 
@@ -93,15 +93,15 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const data = await response.json();
-        console.log("🔍 Debug Response:", data); // ✅ Log response for debugging
+        console.log("🔍 Debug Response:", data); 
 
         if (data.message) {
-          alert(data.message); // ✅ Fix: Ensure alert is not "undefined"
+          alert(data.message);
         } else {
           alert("❌ Unexpected response format. Check console.");
         }
 
-        loadLeaderboards(); // ✅ Refresh leaderboard after save
+        loadLeaderboards(); 
       } catch (error) {
         console.error('❌ Error updating leaderboard:', error);
         alert("❌ Error saving data. Check console.");
@@ -141,6 +141,9 @@ document.addEventListener('DOMContentLoaded', function () {
     fetch(`${API_BASE_URL}/logout`, { credentials: 'include' })
       .then(() => window.location.href = '/');
   });
+
+  // ✅ Auto-refresh leaderboard every 5 seconds
+  setInterval(loadLeaderboards, 5000);
 
   // ✅ Load leaderboard on page load
   loadLeaderboards();

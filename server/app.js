@@ -3,21 +3,15 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 // ✅ Middleware
 app.use(express.json()); // Parse JSON requests
 app.use(cors()); // Allow cross-origin requests
-app.use(express.static('public')); // Serve static files (frontend)
-
-// ✅ Session Handling for Admin Authentication
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'leaderboardsecret',
-  resave: false,
-  saveUninitialized: true
-}));
+app.use(express.static('public')); // Serve static frontend files
 
 // ✅ Connect to MongoDB Atlas
 mongoose.connect(process.env.MONGO_URI)
@@ -26,6 +20,18 @@ mongoose.connect(process.env.MONGO_URI)
     console.error("❌ MongoDB Connection Error:", err);
     process.exit(1); // Stop server if MongoDB fails
   });
+
+// ✅ Session Handling (Store Sessions in MongoDB)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'leaderboardsecret',
+  resave: false,
+  saveUninitialized: true,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,  // Store sessions in MongoDB
+    collectionName: "sessions",
+    ttl: 60 * 60 * 24  // Sessions expire in 24 hours
+  })
+}));
 
 // ✅ Define Leaderboard Schema
 const leaderboardSchema = new mongoose.Schema({

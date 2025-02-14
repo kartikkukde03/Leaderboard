@@ -9,7 +9,6 @@ const logoutButton = document.getElementById('logout-btn');
 roundButtons.forEach(button => {
   button.addEventListener('click', () => {
     const round = button.dataset.round;
-
     spreadsheetTables.forEach(table => table.style.display = 'none'); // Hide all tables
     document.getElementById(`spreadsheet-round${round}`).style.display = 'block'; // Show selected round
   });
@@ -17,12 +16,22 @@ roundButtons.forEach(button => {
 
 // Function to load leaderboard data
 function loadLeaderboards() {
-  fetch(`${API_BASE_URL}/leaderboard`, { credentials: 'include' }) // Include credentials for sessions
+  fetch(`${API_BASE_URL}/leaderboard`, { credentials: 'include' }) // Ensure session persistence
     .then(response => response.json())
     .then(data => {
       ['1', '2', '3'].forEach(round => {
         const table = document.getElementById(`admin-table-round${round}`);
         table.innerHTML = `<tr><th>Pirate Name</th><th>Score</th><th>⚔️ Action</th></tr>`; // Reset table
+
+        // ✅ Show "No data available ☠️" if no data exists
+        if (!data[`round${round}`] || data[`round${round}`].length === 0) {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td colspan="3" style="text-align:center; font-style:italic;">No data available ☠️</td>`;
+          table.appendChild(row);
+          return;
+        }
+
+        // Populate table with leaderboard data
         data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score));
       });
     })
@@ -66,7 +75,7 @@ saveButtons.forEach(button => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ round: `round${round}`, data: leaderboardData }),
-      credentials: 'include' // Ensures session persistence
+      credentials: 'include' // Ensure session persistence
     })
     .then(response => response.json())
     .then(data => alert(data.message))
@@ -81,7 +90,7 @@ document.getElementById('admin-login').addEventListener('click', () => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password }),
-    credentials: 'include' // Ensures session persistence
+    credentials: 'include' // Ensure session persistence
   })
   .then(response => response.json())
   .then(data => {

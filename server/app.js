@@ -44,6 +44,10 @@ const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
 app.get('/leaderboard', async (req, res) => {
   try {
     const leaderboards = await Leaderboard.find();
+    if (!leaderboards || leaderboards.length === 0) {
+      return res.json({ message: "No data available ☠️", data: [] });
+    }
+
     const leaderboardData = {};
     leaderboards.forEach(lb => {
       leaderboardData[lb.round] = lb.data;
@@ -55,6 +59,7 @@ app.get('/leaderboard', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch leaderboard' });
   }
 });
+
 
 // ✅ POST: Update Leaderboard Data (Admin Only)
 app.post('/update-leaderboard', async (req, res) => {

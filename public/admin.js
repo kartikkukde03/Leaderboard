@@ -1,12 +1,12 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const API_BASE_URL = "https://leaderboard-production-6462.up.railway.app"; // Replace with actual API URL
+  const API_BASE_URL = "https://leaderboard-production-6462.up.railway.app"; // Correct API URL
 
   const roundButtons = document.querySelectorAll('.round-btn');
   const saveButtons = document.querySelectorAll('.save-btn');
   const logoutButton = document.getElementById('logout-btn');
   const addRowButtons = document.querySelectorAll('.add-row');
-  
-  // ✅ Function to check admin session (Auto-redirect if expired)
+
+  // ✅ Function to check if admin session is still active
   async function checkAdminSession() {
     try {
       const response = await fetch(`${API_BASE_URL}/check-session`, { credentials: 'include' });
@@ -18,8 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
       console.error("❌ Error checking session:", error);
     }
   }
-  
-  setInterval(checkAdminSession, 30000); // Check session every 30 seconds
+  setInterval(checkAdminSession, 30000); // ✅ Check session every 30 seconds
 
   // ✅ Function to load leaderboard data
   function loadLeaderboards() {
@@ -82,12 +81,13 @@ document.addEventListener('DOMContentLoaded', function () {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ round: `round${round}`, data: leaderboardData }),
-          credentials: 'include'
+          credentials: 'include' // ✅ Ensures session cookies are sent
         });
 
         if (!response.ok) {
           alert("❌ Unauthorized. Please log in again.");
-          return window.location.href = '/';
+          window.location.href = '/';
+          return;
         }
 
         alert("✅ Leaderboard updated successfully!");

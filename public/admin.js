@@ -9,15 +9,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   console.log("✅ admin.js loaded"); // ✅ Debug log
 
-  // ✅ Ensure "Add Pirate" buttons exist
-  if (addRowButtons.length === 0) {
-    console.error("❌ No 'Add Pirate' buttons found!");
-  }
-
-  // ✅ Ensure "Save Round" buttons exist
-  if (saveButtons.length === 0) {
-    console.error("❌ No 'Save Round' buttons found!");
-  }
+  // ✅ Store manually added pirates
+  const addedPirates = { round1: [], round2: [], round3: [] };
 
   // ✅ Load leaderboard data
   async function loadLeaderboards() {
@@ -39,10 +32,12 @@ document.addEventListener('DOMContentLoaded', function () {
         tableBody.innerHTML = `<tr><th>Pirate Name</th><th>Score</th><th>⚔️ Action</th></tr>`;
         if (!data[`round${round}`] || data[`round${round}`].length === 0) {
           tableBody.innerHTML += `<tr><td colspan="3" style="text-align:center;">☠️ No Pirates Yet ☠️</td></tr>`;
-          return;
+        } else {
+          data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score));
         }
 
-        data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score));
+        // ✅ Re-add manually added pirates after refresh
+        addedPirates[`round${round}`].forEach(pirate => addRow(round, pirate.name, pirate.score));
       });
 
     } catch (error) {
@@ -50,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // ✅ Add a new row
+  // ✅ Function to add a new row
   function addRow(round, name = '', score = '') {
     const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
     if (!tableBody) {
@@ -67,8 +62,15 @@ document.addEventListener('DOMContentLoaded', function () {
       <td><button class="delete-row">❌ Remove</button></td>
     `;
 
-    row.querySelector('.delete-row').addEventListener('click', () => row.remove());
+    row.querySelector('.delete-row').addEventListener('click', () => {
+      row.remove();
+      addedPirates[`round${round}`] = addedPirates[`round${round}`].filter(p => p.name !== name);
+    });
+
     tableBody.appendChild(row);
+
+    // ✅ Store manually added pirate
+    addedPirates[`round${round}`].push({ name, score });
   }
 
   // ✅ Ensure "Add Pirate" button works
@@ -108,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         alert("✅ Leaderboard updated successfully!");
-        loadLeaderboards(); // ✅ Refresh leaderboard after saving
+        loadLeaderboards();
       } catch (error) {
         console.error("❌ Error updating leaderboard:", error);
       }
@@ -121,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fetch(`${API_BASE_URL}/logout`, { credentials: 'include' }).then(() => window.location.href = '/');
   });
 
-  // ✅ Round switching logic
+  // ✅ Ensure round switching works
   roundButtons.forEach(button => {
     button.addEventListener('click', () => {
       console.log("🔄 Switching to round:", button.dataset.round);

@@ -9,24 +9,25 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-// ✅ Fix CORS Issues
+// ✅ Fix CORS Issues (Ensures cookies & authentication work)
 app.use(cors({
   origin: "https://leaderboard-iota-one.vercel.app", // Replace with your actual frontend URL
-  credentials: true, // Allow authentication cookies
+  credentials: true, // Ensures cookies are sent
   methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization"],
+  exposedHeaders: ["Set-Cookie"] // ✅ Ensures browser receives session cookies
 }));
 
 // ✅ Middleware
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// ✅ Connect to MongoDB Atlas (Fixed Deprecation Warnings)
+// ✅ Connect to MongoDB Atlas (Fixes Deprecation Warnings)
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-// ✅ Session Management (Required for Admin Login)
+// ✅ Session Management (Fixes Admin Login Persistence)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'leaderboardsecret',
   resave: false,
@@ -38,8 +39,9 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    secure: true, // Set to false if using HTTP instead of HTTPS
-    sameSite: 'None'
+    secure: process.env.NODE_ENV === "production", // Secure only in production
+    sameSite: "None",
+    maxAge: 24 * 60 * 60 * 1000 // 1-day session expiration
   }
 }));
 
@@ -49,6 +51,15 @@ const leaderboardSchema = new mongoose.Schema({
   data: [{ name: String, score: Number }]
 });
 const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
+
+// ✅ Check if Admin is Logged In (Prevents Unauthorized Access)
+app.get('/check-session', (req, res) => {
+  if (req.session.isAdmin) {
+    res.json({ isAdmin: true });
+  } else {
+    res.status(403).json({ error: 'Unauthorized' });
+  }
+});
 
 // ✅ Get Leaderboard Data
 app.get('/leaderboard', async (req, res) => {
@@ -70,7 +81,7 @@ app.get('/leaderboard', async (req, res) => {
   }
 });
 
-// ✅ Admin Login Route
+// ✅ Admin Login Route (Stores Session Properly)
 app.post('/login', (req, res) => {
   const { password } = req.body;
 
@@ -86,13 +97,13 @@ app.post('/login', (req, res) => {
   }
 });
 
-// ✅ Admin Logout Route
+// ✅ Admin Logout Route (Destroys Session)
 app.get('/logout', (req, res) => {
   req.session.destroy();
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
-// ✅ Update Leaderboard (Admin Only)
+// ✅ Update Leaderboard (Admin Only, Fixes Unauthorized Errors)
 app.post('/update-leaderboard', async (req, res) => {
   if (!req.session.isAdmin) {
     return res.status(403).json({ error: 'Unauthorized' });

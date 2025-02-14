@@ -1,13 +1,12 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const API_BASE_URL = "https://leaderboard-production-6462.up.railway.app"; // Update with actual backend URL
+  const API_BASE_URL = "https://leaderboard-production-6462.up.railway.app"; // Replace with actual API URL
 
   const roundButtons = document.querySelectorAll('.round-btn');
   const saveButtons = document.querySelectorAll('.save-btn');
   const logoutButton = document.getElementById('logout-btn');
-  const addRowButtons = document.querySelectorAll('.add-row'); 
-  const adminLoginButton = document.getElementById('admin-login'); 
-
-  // ✅ Check if session is active (redirects to login if expired)
+  const addRowButtons = document.querySelectorAll('.add-row');
+  
+  // ✅ Function to check admin session (Auto-redirect if expired)
   async function checkAdminSession() {
     try {
       const response = await fetch(`${API_BASE_URL}/check-session`, { credentials: 'include' });
@@ -19,10 +18,10 @@ document.addEventListener('DOMContentLoaded', function () {
       console.error("❌ Error checking session:", error);
     }
   }
+  
+  setInterval(checkAdminSession, 30000); // Check session every 30 seconds
 
-  setInterval(checkAdminSession, 60000); // Check session every 60 seconds
-
-  // ✅ Load leaderboard data
+  // ✅ Function to load leaderboard data
   function loadLeaderboards() {
     fetch(`${API_BASE_URL}/leaderboard`, { credentials: 'include' })
       .then(response => response.json())
@@ -60,7 +59,15 @@ document.addEventListener('DOMContentLoaded', function () {
     table.appendChild(row);
   }
 
-  // ✅ Save leaderboard
+  // ✅ Attach event listeners to "Add Pirate" buttons
+  addRowButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const round = button.dataset.round;
+      addRow(round);
+    });
+  });
+
+  // ✅ Save leaderboard for a specific round
   saveButtons.forEach(button => {
     button.addEventListener('click', async () => {
       const round = button.dataset.round;
@@ -91,9 +98,20 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  // ✅ Logout function
   logoutButton.addEventListener('click', () => {
     fetch(`${API_BASE_URL}/logout`, { credentials: 'include' }).then(() => window.location.href = '/');
   });
 
+  // ✅ Function to switch between rounds
+  roundButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const round = button.dataset.round;
+      document.querySelectorAll('.spreadsheet-table').forEach(table => table.style.display = 'none');
+      document.getElementById(`spreadsheet-round${round}`).style.display = 'block';
+    });
+  });
+
   loadLeaderboards();
+  setInterval(loadLeaderboards, 5000); // Auto-refresh leaderboard every 5 seconds
 });

@@ -1,4 +1,4 @@
-const API_BASE_URL = "leaderboard-production-6462.up.railway.app";  // Replace with your actual Railway API URL
+const API_BASE_URL = "https://leaderboard-production-6462.up.railway.app";  // Replace with your actual Railway URL
 
 const roundButtons = document.querySelectorAll('.round-btn');
 const spreadsheetTables = document.querySelectorAll('.spreadsheet-table');
@@ -15,9 +15,9 @@ roundButtons.forEach(button => {
   });
 });
 
-// Function to load leaderboard data for all rounds
+// Function to load leaderboard data
 function loadLeaderboards() {
-  fetch(`${API_BASE_URL}/leaderboard`)  // Use full API URL
+  fetch(`${API_BASE_URL}/leaderboard`, { credentials: 'include' }) // Include credentials for sessions
     .then(response => response.json())
     .then(data => {
       ['1', '2', '3'].forEach(round => {
@@ -62,10 +62,11 @@ saveButtons.forEach(button => {
       return { name: inputs[0].value.trim(), score: parseInt(inputs[1].value) || 0 };
     });
 
-    fetch(`${API_BASE_URL}/update-leaderboard`, {  // Use full API URL
+    fetch(`${API_BASE_URL}/update-leaderboard`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ round: `round${round}`, data: leaderboardData }) // Send only one round
+      body: JSON.stringify({ round: `round${round}`, data: leaderboardData }),
+      credentials: 'include' // Ensures session persistence
     })
     .then(response => response.json())
     .then(data => alert(data.message))
@@ -73,9 +74,29 @@ saveButtons.forEach(button => {
   });
 });
 
+// Admin Login
+document.getElementById('admin-login').addEventListener('click', () => {
+  const password = prompt('Enter admin password:');
+  fetch(`${API_BASE_URL}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+    credentials: 'include' // Ensures session persistence
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      window.location.href = '/admin.html'; // Redirect to admin panel
+    } else {
+      alert('Invalid Password, you scallywag! ☠️');
+    }
+  });
+});
+
 // Logout function
 logoutButton.addEventListener('click', () => {
-  fetch(`${API_BASE_URL}/logout`).then(() => window.location.href = '/');
+  fetch(`${API_BASE_URL}/logout`, { credentials: 'include' })
+    .then(() => window.location.href = '/');
 });
 
 // Load leaderboards on page load

@@ -6,23 +6,21 @@ document.addEventListener('DOMContentLoaded', function () {
   const saveButtons = document.querySelectorAll('.save-btn');
   const logoutButton = document.getElementById('logout-btn');
   const addRowButtons = document.querySelectorAll('.add-row'); 
+  const adminLoginButton = document.getElementById('admin-login'); // ✅ Ensure login button exists
 
   // ✅ Fix: Ensure elements exist before adding event listeners
-  if (!addRowButtons || addRowButtons.length === 0) {
-    console.error("❌ No 'Add Pirate' buttons found!");
-  } else {
+  if (addRowButtons.length > 0) {
     addRowButtons.forEach(button => {
       button.addEventListener('click', () => {
         const round = button.dataset.round;
         addRow(round);
       });
     });
+  } else {
+    console.error("❌ No 'Add Pirate' buttons found!");
   }
 
-  // ✅ Fix: Ensure "Save Round" buttons exist
-  if (!saveButtons || saveButtons.length === 0) {
-    console.error("❌ No 'Save Round' buttons found!");
-  } else {
+  if (saveButtons.length > 0) {
     saveButtons.forEach(button => {
       button.addEventListener('click', async () => {
         const round = button.dataset.round;
@@ -40,14 +38,14 @@ document.addEventListener('DOMContentLoaded', function () {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ round: `round${round}`, data: leaderboardData }),
-            credentials: 'include' // ✅ Ensure session authentication works
+            credentials: 'include'
           });
 
           console.log("🔍 Raw Response:", response);
 
           if (!response.ok) {
             if (response.status === 403) {
-              alert("❌ Unauthorized: Admin session missing. Please log in again.");
+              alert("❌ Unauthorized: Admin session expired. Please log in again.");
               window.location.href = '/'; // Redirect to login page
               return;
             }
@@ -70,9 +68,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     });
+  } else {
+    console.error("❌ No 'Save Round' buttons found!");
   }
 
-  // ✅ Fix: Ensure logout button exists
   if (logoutButton) {
     logoutButton.addEventListener('click', () => {
       fetch(`${API_BASE_URL}/logout`, { credentials: 'include' })
@@ -80,6 +79,37 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   } else {
     console.error("❌ Logout button not found!");
+  }
+
+  // ✅ Fix: Ensure admin login button exists
+  if (adminLoginButton) {
+    adminLoginButton.addEventListener('click', async () => {
+      const password = prompt('Enter admin password:');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+        console.log("🔍 Login Debug Response:", data);
+
+        if (data.success) {
+          alert('✅ Login successful! Redirecting to admin panel...');
+          window.location.href = '/admin.html';
+        } else {
+          alert(`❌ Login failed: ${data.message}`);
+        }
+      } catch (error) {
+        console.error('❌ Error during login:', error);
+        alert('❌ An error occurred while logging in. Check the console.');
+      }
+    });
+  } else {
+    console.error("❌ Admin login button not found!");
   }
 
   // ✅ Function to switch between rounds
@@ -132,33 +162,6 @@ document.addEventListener('DOMContentLoaded', function () {
     row.querySelector('.delete-row').addEventListener('click', () => row.remove());
     table.appendChild(row);
   }
-
-  // ✅ Admin Login
-  document.getElementById('admin-login').addEventListener('click', async () => {
-    const password = prompt('Enter admin password:');
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-        credentials: 'include'
-      });
-
-      const data = await response.json();
-      console.log("🔍 Login Debug Response:", data);
-
-      if (data.success) {
-        alert('✅ Login successful! Redirecting to admin panel...');
-        window.location.href = '/admin.html';
-      } else {
-        alert(`❌ Login failed: ${data.message}`);
-      }
-    } catch (error) {
-      console.error('❌ Error during login:', error);
-      alert('❌ An error occurred while logging in. Check the console.');
-    }
-  });
 
   // ✅ Auto-refresh leaderboard every 5 seconds
   setInterval(loadLeaderboards, 5000);

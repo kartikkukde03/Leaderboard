@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const API_BASE_URL = "https://leaderboard-api.onrender.com";  // Change to your actual Render backend URL
+  const API_BASE_URL = "leaderboard-production-6462.up.railway.app";  // Change to your actual Render backend URL
 
   const leaderboardContainers = {
     round1: document.querySelector('#leaderboard-round1 tbody'),

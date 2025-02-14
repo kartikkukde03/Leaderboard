@@ -1,3 +1,5 @@
+const API_BASE_URL = "leaderboard-production-6462.up.railway.app";  // Replace with your actual Railway API URL
+
 const roundButtons = document.querySelectorAll('.round-btn');
 const spreadsheetTables = document.querySelectorAll('.spreadsheet-table');
 const saveButtons = document.querySelectorAll('.save-btn');
@@ -15,7 +17,7 @@ roundButtons.forEach(button => {
 
 // Function to load leaderboard data for all rounds
 function loadLeaderboards() {
-  fetch('/leaderboard')
+  fetch(`${API_BASE_URL}/leaderboard`)  // Use full API URL
     .then(response => response.json())
     .then(data => {
       ['1', '2', '3'].forEach(round => {
@@ -60,7 +62,7 @@ saveButtons.forEach(button => {
       return { name: inputs[0].value.trim(), score: parseInt(inputs[1].value) || 0 };
     });
 
-    fetch('/update-leaderboard', {
+    fetch(`${API_BASE_URL}/update-leaderboard`, {  // Use full API URL
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ round: `round${round}`, data: leaderboardData }) // Send only one round
@@ -73,7 +75,7 @@ saveButtons.forEach(button => {
 
 // Logout function
 logoutButton.addEventListener('click', () => {
-  fetch('/logout').then(() => window.location.href = '/');
+  fetch(`${API_BASE_URL}/logout`).then(() => window.location.href = '/');
 });
 
 // Load leaderboards on page load

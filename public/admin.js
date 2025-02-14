@@ -7,49 +7,58 @@ document.addEventListener('DOMContentLoaded', function () {
   const saveButtons = document.querySelectorAll('.save-btn');
   const spreadsheetTables = document.querySelectorAll('.spreadsheet-table');
 
-  // ✅ Ensure admin session is active
-  async function checkAdminSession() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/check-session`, { credentials: 'include' });
-      if (!response.ok) {
-        alert("❌ Admin session expired. Please log in again.");
-        window.location.href = '/';
-      }
-    } catch (error) {
-      console.error("❌ Error checking session:", error);
-    }
-  }
-  setInterval(checkAdminSession, 30000); // ✅ Check session every 30 seconds
+  console.log("✅ admin.js loaded"); // ✅ Debug log
 
-  // ✅ Function to load leaderboard data
+  // ✅ Ensure "Add Pirate" buttons exist
+  if (addRowButtons.length === 0) {
+    console.error("❌ No 'Add Pirate' buttons found!");
+  }
+
+  // ✅ Ensure "Save Round" buttons exist
+  if (saveButtons.length === 0) {
+    console.error("❌ No 'Save Round' buttons found!");
+  }
+
+  // ✅ Load leaderboard data
   async function loadLeaderboards() {
+    console.log("🔄 Fetching leaderboard data...");
     try {
       const response = await fetch(`${API_BASE_URL}/leaderboard`, { credentials: 'include' });
-      if (!response.ok) throw new Error("Failed to fetch leaderboard data");
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
       const data = await response.json();
+      console.log("✅ Leaderboard Data:", data);
+
       ['1', '2', '3'].forEach(round => {
         const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
-        tableBody.innerHTML = `<tr><th>Pirate Name</th><th>Score</th><th>⚔️ Action</th></tr>`;
+        if (!tableBody) {
+          console.error(`❌ Table for round ${round} not found!`);
+          return;
+        }
 
+        tableBody.innerHTML = `<tr><th>Pirate Name</th><th>Score</th><th>⚔️ Action</th></tr>`;
         if (!data[`round${round}`] || data[`round${round}`].length === 0) {
-          const row = document.createElement('tr');
-          row.innerHTML = `<td colspan="3" style="text-align:center;">☠️ No Pirates Yet ☠️</td>`;
-          tableBody.appendChild(row);
+          tableBody.innerHTML += `<tr><td colspan="3" style="text-align:center;">☠️ No Pirates Yet ☠️</td></tr>`;
           return;
         }
 
         data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score));
       });
+
     } catch (error) {
       console.error("❌ Error loading leaderboard:", error);
     }
   }
 
-  // ✅ Function to add a new row
+  // ✅ Add a new row
   function addRow(round, name = '', score = '') {
     const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
-    if (!tableBody) return console.error(`❌ Table for round ${round} not found!`);
+    if (!tableBody) {
+      console.error(`❌ Table for round ${round} not found!`);
+      return;
+    }
+
+    console.log(`➕ Adding pirate to Round ${round}`);
 
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -62,23 +71,27 @@ document.addEventListener('DOMContentLoaded', function () {
     tableBody.appendChild(row);
   }
 
-  // ✅ Ensure "Add Pirate" button always works
+  // ✅ Ensure "Add Pirate" button works
   addRowButtons.forEach(button => {
     button.addEventListener('click', () => {
+      console.log("➕ Add Pirate button clicked");
       const round = button.dataset.round;
       addRow(round);
     });
   });
 
-  // ✅ Ensure "Save Round" updates leaderboard
+  // ✅ Save leaderboard data
   saveButtons.forEach(button => {
     button.addEventListener('click', async () => {
+      console.log("💾 Save Round button clicked");
       const round = button.dataset.round;
       const rows = document.querySelectorAll(`#admin-table-round${round} tbody tr:not(:first-child)`);
       const leaderboardData = Array.from(rows).map(row => {
         const inputs = row.querySelectorAll('input');
         return { name: inputs[0]?.value.trim() || "Unknown Pirate", score: parseInt(inputs[1]?.value) || 0 };
       });
+
+      console.log(`📤 Sending update for Round ${round}:`, leaderboardData);
 
       try {
         const response = await fetch(`${API_BASE_URL}/update-leaderboard`, {
@@ -95,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         alert("✅ Leaderboard updated successfully!");
-        loadLeaderboards();
+        loadLeaderboards(); // ✅ Refresh leaderboard after saving
       } catch (error) {
         console.error("❌ Error updating leaderboard:", error);
       }
@@ -104,12 +117,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ✅ Logout function
   logoutButton.addEventListener('click', () => {
+    console.log("🚪 Logging out...");
     fetch(`${API_BASE_URL}/logout`, { credentials: 'include' }).then(() => window.location.href = '/');
   });
 
-  // ✅ Ensure round switching works
+  // ✅ Round switching logic
   roundButtons.forEach(button => {
     button.addEventListener('click', () => {
+      console.log("🔄 Switching to round:", button.dataset.round);
       const round = button.dataset.round;
       spreadsheetTables.forEach(table => table.style.display = 'none');
       document.getElementById(`spreadsheet-round${round}`).style.display = 'block';

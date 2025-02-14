@@ -7,7 +7,21 @@ document.addEventListener('DOMContentLoaded', function () {
   const saveButtons = document.querySelectorAll('.save-btn');
   const spreadsheetTables = document.querySelectorAll('.spreadsheet-table');
 
-  // ✅ Function to load leaderboard data and populate tables
+  // ✅ Ensure admin session is active
+  async function checkAdminSession() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/check-session`, { credentials: 'include' });
+      if (!response.ok) {
+        alert("❌ Admin session expired. Please log in again.");
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error("❌ Error checking session:", error);
+    }
+  }
+  setInterval(checkAdminSession, 30000); // ✅ Check session every 30 seconds
+
+  // ✅ Function to load leaderboard data
   async function loadLeaderboards() {
     try {
       const response = await fetch(`${API_BASE_URL}/leaderboard`, { credentials: 'include' });
@@ -32,21 +46,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // ✅ Function to check if admin session is valid
-  async function checkAdminSession() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/check-session`, { credentials: 'include' });
-      if (!response.ok) {
-        alert("❌ Session expired. Please log in again.");
-        window.location.href = '/';
-      }
-    } catch (error) {
-      console.error("❌ Error checking session:", error);
-    }
-  }
-  setInterval(checkAdminSession, 30000); // Check session every 30 seconds
-
-  // ✅ Function to add a new row in a specific round
+  // ✅ Function to add a new row
   function addRow(round, name = '', score = '') {
     const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
     if (!tableBody) return console.error(`❌ Table for round ${round} not found!`);
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function () {
     tableBody.appendChild(row);
   }
 
-  // ✅ Attach event listeners to "Add Pirate" buttons
+  // ✅ Ensure "Add Pirate" button always works
   addRowButtons.forEach(button => {
     button.addEventListener('click', () => {
       const round = button.dataset.round;
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // ✅ Save leaderboard data for a specific round
+  // ✅ Ensure "Save Round" updates leaderboard
   saveButtons.forEach(button => {
     button.addEventListener('click', async () => {
       const round = button.dataset.round;
@@ -88,7 +88,6 @@ document.addEventListener('DOMContentLoaded', function () {
           credentials: 'include'
         });
 
-        const data = await response.json();
         if (!response.ok) {
           alert("❌ Unauthorized. Please log in again.");
           window.location.href = '/';
@@ -96,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         alert("✅ Leaderboard updated successfully!");
-        loadLeaderboards(); // ✅ Refresh main page leaderboard
+        loadLeaderboards();
       } catch (error) {
         console.error("❌ Error updating leaderboard:", error);
       }
@@ -108,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fetch(`${API_BASE_URL}/logout`, { credentials: 'include' }).then(() => window.location.href = '/');
   });
 
-  // ✅ Function to switch between rounds
+  // ✅ Ensure round switching works
   roundButtons.forEach(button => {
     button.addEventListener('click', () => {
       const round = button.dataset.round;
@@ -117,6 +116,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  loadLeaderboards(); // Load leaderboard on page load
-  setInterval(loadLeaderboards, 5000); // Auto-refresh leaderboard every 5 seconds
+  loadLeaderboards(); // ✅ Load leaderboard on page load
+  setInterval(loadLeaderboards, 5000); // ✅ Auto-refresh leaderboard every 5 seconds
 });

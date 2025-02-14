@@ -1,0 +1,101 @@
+/* 🏴‍☠️ Import Pirate Font */
+@import url('https://fonts.googleapis.com/css2?family=Pirata+One&display=swap');
+
+body {
+    font-family: 'Pirata One', cursive;
+    background: linear-gradient(135deg, #1a1a1a, #660000); /* Dark red & black gradient */
+    color: #ffd700;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+/* 🎭 Pirate Header */
+.pirate-header {
+    background: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    box-shadow: 0px 0px 10px #ffd700;
+    border-bottom: 5px solid #ff0000;
+}
+
+h1 {
+    font-size: 3rem;
+    text-shadow: 4px 4px 10px #000;
+}
+
+p {
+    font-size: 1.2rem;
+    font-style: italic;
+}
+
+/* 🏆 Leaderboard Sections */
+.leaderboard-section {
+    margin: 30px auto;
+    width: 80%;
+    padding: 20px;
+    border: 3px solid #ffcc00;
+    background: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
+    border-radius: 20px;
+    box-shadow: 0px 0px 20px #ff0000;
+}
+
+.leaderboard-section h2 {
+    font-size: 2rem;
+    color: #ffcc00;
+    text-shadow: 2px 2px 5px #000;
+}
+
+/* 🏅 Table Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+th {
+    background: #ff0000;
+    color: #fff;
+    padding: 15px;
+    border-bottom: 3px solid #000;
+}
+
+td {
+    background: rgba(255, 255, 255, 0.8);
+    color: #000;
+    padding: 10px;
+    border-bottom: 2px solid #000;
+}
+
+/* 🦜 Admin Login Button */
+#admin-login {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #ffcc00, #ff0000);
+    color: black;
+    font-size: 1.2rem;
+    padding: 10px 20px;
+    border-radius: 10px;
+    box-shadow: 3px 3px 10px #000;
+    cursor: pointer;
+    transition: transform 0.3s, background 0.3s;
+}
+
+#admin-login:hover {
+    background: linear-gradient(135deg, #ff0000, #ffcc00);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+/* 🏴‍☠️ Animations */
+@keyframes glow {
+    0% { text-shadow: 0 0 5px #ffd700; }
+    50% { text-shadow: 0 0 15px #ffcc00; }
+    100% { text-shadow: 0 0 5px #ffd700; }
+}
+
+h1, h2 {
+    animation: glow 2s infinite alternate;
+}

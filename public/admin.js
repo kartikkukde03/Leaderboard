@@ -86,6 +86,7 @@ saveButtons.forEach(button => {
 // Admin Login
 document.getElementById('admin-login').addEventListener('click', () => {
   const password = prompt('Enter admin password:');
+
   fetch(`${API_BASE_URL}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -95,12 +96,15 @@ document.getElementById('admin-login').addEventListener('click', () => {
   .then(response => response.json())
   .then(data => {
     if (data.success) {
+      alert('Login successful! Redirecting to admin panel...');
       window.location.href = '/admin.html'; // Redirect to admin panel
     } else {
-      alert('Invalid Password, you scallywag! ☠️');
+      alert(`Login failed: ${data.message}`);
     }
-  });
+  })
+  .catch(error => console.error('❌ Error during login:', error));
 });
+
 
 // Logout function
 logoutButton.addEventListener('click', () => {

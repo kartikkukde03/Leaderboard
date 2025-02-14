@@ -90,13 +90,19 @@ app.post('/update-leaderboard', async (req, res) => {
 // ✅ POST: Admin Login
 app.post('/login', (req, res) => {
   const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ success: false, message: 'Password required' });
+  }
+
   if (password === process.env.ADMIN_PASSWORD) {
     req.session.isAdmin = true;
-    res.json({ success: true });
+    return res.json({ success: true, message: 'Login successful' });
   } else {
-    res.json({ success: false });
+    return res.status(401).json({ success: false, message: 'Invalid password' });
   }
 });
+
 
 // ✅ GET: Admin Logout
 app.get('/logout', (req, res) => {

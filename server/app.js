@@ -1,39 +1,40 @@
-require('dotenv').config();  // Load environment variables
-console.log("🔍 MONGO_URI:", process.env.MONGO_URI); // Debugging
-
+require('dotenv').config();
 const express = require('express');
-const bodyParser = require('body-parser');
-const session = require('express-session');
-const cors = require('cors');
 const mongoose = require('mongoose');
+const cors = require('cors');
+const session = require('express-session');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(bodyParser.json());
-app.use(express.static('public'));
-app.use(cors());
+// ✅ Middleware
+app.use(express.json()); // Parse JSON requests
+app.use(cors()); // Allow cross-origin requests
+app.use(express.static('public')); // Serve static files (frontend)
+
+// ✅ Session Handling for Admin Authentication
 app.use(session({
-  secret: 'adminsecret',
+  secret: process.env.SESSION_SECRET || 'leaderboardsecret',
   resave: false,
   saveUninitialized: true
 }));
 
-// 🔹 Connect to MongoDB Atlas
+// ✅ Connect to MongoDB Atlas
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
-  .catch(err => console.error("❌ MongoDB Connection Error:", err));
+  .catch(err => {
+    console.error("❌ MongoDB Connection Error:", err);
+    process.exit(1); // Stop server if MongoDB fails
+  });
 
-
-// 🔹 Define Leaderboard Schema
+// ✅ Define Leaderboard Schema
 const leaderboardSchema = new mongoose.Schema({
   round: { type: String, required: true },
   data: [{ name: String, score: Number }]
 });
 const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
 
-// 🔹 Get leaderboard data from MongoDB
+// ✅ GET: Fetch Leaderboard Data
 app.get('/leaderboard', async (req, res) => {
   try {
     const leaderboards = await Leaderboard.find();
@@ -42,7 +43,6 @@ app.get('/leaderboard', async (req, res) => {
       leaderboardData[lb.round] = lb.data;
     });
 
-    console.log('📤 Sending Leaderboard Data:', JSON.stringify(leaderboardData, null, 2));
     res.json(leaderboardData);
   } catch (error) {
     console.error('❌ Error fetching leaderboard:', error);
@@ -50,7 +50,7 @@ app.get('/leaderboard', async (req, res) => {
   }
 });
 
-// 🔹 Update leaderboard (Admin Only)
+// ✅ POST: Update Leaderboard Data (Admin Only)
 app.post('/update-leaderboard', async (req, res) => {
   if (!req.session.isAdmin) {
     return res.status(403).json({ error: 'Unauthorized' });
@@ -65,11 +65,10 @@ app.post('/update-leaderboard', async (req, res) => {
   try {
     const updatedLeaderboard = await Leaderboard.findOneAndUpdate(
       { round },
-      { data: data.sort((a, b) => b.score - a.score) },
+      { data: data.sort((a, b) => b.score - a.score) }, // Sort by score (descending)
       { upsert: true, new: true }
     );
 
-    console.log(`✅ Updated ${round}:`, updatedLeaderboard);
     res.json({ message: `${round} updated successfully!` });
   } catch (error) {
     console.error('❌ Error updating leaderboard:', error);
@@ -77,10 +76,10 @@ app.post('/update-leaderboard', async (req, res) => {
   }
 });
 
-// 🔹 Admin Login
+// ✅ POST: Admin Login
 app.post('/login', (req, res) => {
   const { password } = req.body;
-  if (password === 'admin123') {
+  if (password === process.env.ADMIN_PASSWORD) {
     req.session.isAdmin = true;
     res.json({ success: true });
   } else {
@@ -88,11 +87,11 @@ app.post('/login', (req, res) => {
   }
 });
 
-// 🔹 Admin Logout
+// ✅ GET: Admin Logout
 app.get('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/');
 });
 
-// 🔹 Start Server
-app.listen(PORT, () => console.log(`🏴‍☠️ Server running at http://localhost:${PORT}`));
+// ✅ Start Server
+app.listen(PORT, () => console.log(`🏴‍☠️ Server running on port ${PORT}`));

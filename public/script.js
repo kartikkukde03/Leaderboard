@@ -1,24 +1,23 @@
 document.addEventListener('DOMContentLoaded', function () {
+  const API_BASE_URL = "https://leaderboard-api.onrender.com";  // Change to your actual Render backend URL
+
   const leaderboardContainers = {
     round1: document.querySelector('#leaderboard-round1 tbody'),
     round2: document.querySelector('#leaderboard-round2 tbody'),
     round3: document.querySelector('#leaderboard-round3 tbody')
   };
 
+  let previousData = {}; // Store last known leaderboard state
+
   function loadLeaderboards() {
-    fetch('/leaderboard')
+    fetch(`${API_BASE_URL}/leaderboard`)  // Use full API URL
       .then(response => response.json())
       .then(data => {
-        console.log('Fetched Leaderboard Data:', data); // Debugging log
+        if (JSON.stringify(data) === JSON.stringify(previousData)) return; // Skip update if no change
+        previousData = data;
 
         Object.keys(leaderboardContainers).forEach(round => {
           const leaderboardBody = leaderboardContainers[round];
-
-          if (!leaderboardBody) {
-            console.error(`Error: Leaderboard table for ${round} not found.`);
-            return;
-          }
-
           leaderboardBody.innerHTML = ''; // Clear previous data
 
           if (!data[round] || data[round].length === 0) {
@@ -35,12 +34,12 @@ document.addEventListener('DOMContentLoaded', function () {
           });
         });
       })
-      .catch(error => console.error('Error loading leaderboard:', error));
+      .catch(error => console.error('❌ Error loading leaderboard:', error));
   }
 
   document.getElementById('admin-login').addEventListener('click', () => {
     const password = prompt('Enter admin password:');
-    fetch('/login', {
+    fetch(`${API_BASE_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password })
@@ -56,6 +55,5 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   loadLeaderboards(); // Load data on page load
-
   setInterval(loadLeaderboards, 5000); // Auto-refresh leaderboard every 5 seconds
 });

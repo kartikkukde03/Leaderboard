@@ -7,18 +7,80 @@ document.addEventListener('DOMContentLoaded', function () {
   const logoutButton = document.getElementById('logout-btn');
   const addRowButtons = document.querySelectorAll('.add-row'); 
 
-  // ✅ Fix: Ensure "Add Pirate" button is not null
-  if (addRowButtons.length === 0) {
+  // ✅ Fix: Ensure elements exist before adding event listeners
+  if (!addRowButtons || addRowButtons.length === 0) {
     console.error("❌ No 'Add Pirate' buttons found!");
+  } else {
+    addRowButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const round = button.dataset.round;
+        addRow(round);
+      });
+    });
   }
 
-  // ✅ Attach event listeners to "Add Pirate" buttons
-  addRowButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const round = button.dataset.round;
-      addRow(round);
+  // ✅ Fix: Ensure "Save Round" buttons exist
+  if (!saveButtons || saveButtons.length === 0) {
+    console.error("❌ No 'Save Round' buttons found!");
+  } else {
+    saveButtons.forEach(button => {
+      button.addEventListener('click', async () => {
+        const round = button.dataset.round;
+        const rows = document.querySelectorAll(`#admin-table-round${round} tr:not(:first-child)`);
+
+        const leaderboardData = Array.from(rows).map(row => {
+          const inputs = row.querySelectorAll('input');
+          const name = inputs[0]?.value.trim() || "Unknown Pirate"; 
+          const score = parseInt(inputs[1]?.value) || 0; 
+          return { name, score };
+        });
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/update-leaderboard`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ round: `round${round}`, data: leaderboardData }),
+            credentials: 'include' // ✅ Ensure session authentication works
+          });
+
+          console.log("🔍 Raw Response:", response);
+
+          if (!response.ok) {
+            if (response.status === 403) {
+              alert("❌ Unauthorized: Admin session missing. Please log in again.");
+              window.location.href = '/'; // Redirect to login page
+              return;
+            }
+            throw new Error(`HTTP Error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log("🔍 Debug Response:", data);
+
+          if (data.message) {
+            alert(data.message);
+          } else {
+            alert("❌ Unexpected response format. Check console.");
+          }
+
+          loadLeaderboards();
+        } catch (error) {
+          console.error('❌ Error updating leaderboard:', error);
+          alert("❌ Error saving data. Check console.");
+        }
+      });
     });
-  });
+  }
+
+  // ✅ Fix: Ensure logout button exists
+  if (logoutButton) {
+    logoutButton.addEventListener('click', () => {
+      fetch(`${API_BASE_URL}/logout`, { credentials: 'include' })
+        .then(() => window.location.href = '/');
+    });
+  } else {
+    console.error("❌ Logout button not found!");
+  }
 
   // ✅ Function to switch between rounds
   roundButtons.forEach(button => {
@@ -71,44 +133,6 @@ document.addEventListener('DOMContentLoaded', function () {
     table.appendChild(row);
   }
 
-  // ✅ Save leaderboard for a specific round
-  saveButtons.forEach(button => {
-    button.addEventListener('click', async () => {
-      const round = button.dataset.round;
-      const rows = document.querySelectorAll(`#admin-table-round${round} tr:not(:first-child)`);
-
-      const leaderboardData = Array.from(rows).map(row => {
-        const inputs = row.querySelectorAll('input');
-        const name = inputs[0].value.trim() || "Unknown Pirate"; 
-        const score = parseInt(inputs[1].value) || 0; 
-        return { name, score };
-      });
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/update-leaderboard`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ round: `round${round}`, data: leaderboardData }),
-          credentials: 'include'
-        });
-
-        const data = await response.json();
-        console.log("🔍 Debug Response:", data); 
-
-        if (data.message) {
-          alert(data.message);
-        } else {
-          alert("❌ Unexpected response format. Check console.");
-        }
-
-        loadLeaderboards(); 
-      } catch (error) {
-        console.error('❌ Error updating leaderboard:', error);
-        alert("❌ Error saving data. Check console.");
-      }
-    });
-  });
-
   // ✅ Admin Login
   document.getElementById('admin-login').addEventListener('click', async () => {
     const password = prompt('Enter admin password:');
@@ -134,12 +158,6 @@ document.addEventListener('DOMContentLoaded', function () {
       console.error('❌ Error during login:', error);
       alert('❌ An error occurred while logging in. Check the console.');
     }
-  });
-
-  // ✅ Logout
-  logoutButton.addEventListener('click', () => {
-    fetch(`${API_BASE_URL}/logout`, { credentials: 'include' })
-      .then(() => window.location.href = '/');
   });
 
   // ✅ Auto-refresh leaderboard every 5 seconds

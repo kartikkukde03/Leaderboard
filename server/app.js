@@ -1,51 +1,64 @@
-require('dotenv').config();
+require('dotenv').config(); // Load environment variables
+
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
+const cors = require('cors');
+const bodyParser = require('body-parser');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+
+// ✅ Fix CORS Issues
+app.use(cors({
+  origin: "https://leaderboard-iota-one.vercel.app", // Replace with your actual frontend URL
+  credentials: true, // Allow authentication cookies
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 // ✅ Middleware
-app.use(express.json()); // Parse JSON requests
-app.use(cors()); // Allow cross-origin requests
-app.use(express.static('public')); // Serve static frontend files
+app.use(bodyParser.json());
+app.use(express.static('public'));
 
 // ✅ Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB Atlas"))
-  .catch(err => {
-    console.error("❌ MongoDB Connection Error:", err);
-    process.exit(1); // Stop server if MongoDB fails
-  });
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log("✅ Connected to MongoDB Atlas"))
+.catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-// ✅ Session Handling (Store Sessions in MongoDB)
+// ✅ Session Management (Required for Admin Login)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'leaderboardsecret',
   resave: false,
   saveUninitialized: true,
   store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,  // Store sessions in MongoDB
+    mongoUrl: process.env.MONGO_URI,
     collectionName: "sessions",
-    ttl: 60 * 60 * 24  // Sessions expire in 24 hours
-  })
+    ttl: 24 * 60 * 60 // Sessions expire after 24 hours
+  }),
+  cookie: {
+    httpOnly: true,
+    secure: true, // Set to false if using HTTP instead of HTTPS
+    sameSite: 'None'
+  }
 }));
 
-// ✅ Define Leaderboard Schema
+// ✅ Define MongoDB Schema
 const leaderboardSchema = new mongoose.Schema({
-  round: { type: String, required: true },
+  round: String,
   data: [{ name: String, score: Number }]
 });
 const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
 
-// ✅ GET: Fetch Leaderboard Data
+// ✅ Get Leaderboard Data
 app.get('/leaderboard', async (req, res) => {
   try {
     const leaderboards = await Leaderboard.find();
     if (!leaderboards || leaderboards.length === 0) {
-      return res.json({ message: "No data available ☠️", data: [] });
+      return res.json({ message: "No data available ☠️", data: {} });
     }
 
     const leaderboardData = {};
@@ -60,34 +73,7 @@ app.get('/leaderboard', async (req, res) => {
   }
 });
 
-
-// ✅ POST: Update Leaderboard Data (Admin Only)
-app.post('/update-leaderboard', async (req, res) => {
-  if (!req.session.isAdmin) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-
-  const { round, data } = req.body;
-
-  if (!round || !data) {
-    return res.status(400).json({ error: 'Invalid data format. Provide round and data.' });
-  }
-
-  try {
-    const updatedLeaderboard = await Leaderboard.findOneAndUpdate(
-      { round },
-      { data: data.sort((a, b) => b.score - a.score) }, // Sort by score (descending)
-      { upsert: true, new: true }
-    );
-
-    res.json({ message: `${round} updated successfully!` });
-  } catch (error) {
-    console.error('❌ Error updating leaderboard:', error);
-    res.status(500).json({ error: 'Failed to update leaderboard' });
-  }
-});
-
-// ✅ POST: Admin Login
+// ✅ Admin Login Route
 app.post('/login', (req, res) => {
   const { password } = req.body;
 
@@ -103,13 +89,39 @@ app.post('/login', (req, res) => {
   }
 });
 
-
-// ✅ GET: Admin Logout
+// ✅ Admin Logout Route
 app.get('/logout', (req, res) => {
   req.session.destroy();
-  res.redirect('/');
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
+// ✅ Update Leaderboard (Admin Only)
+app.post('/update-leaderboard', async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  const { round, data } = req.body;
+
+  if (!round || !data) {
+    return res.status(400).json({ error: 'Invalid data format. Provide round and data.' });
+  }
+
+  try {
+    await Leaderboard.findOneAndUpdate(
+      { round },
+      { round, data },
+      { upsert: true, new: true }
+    );
+
+    console.log(`✅ Updated ${round}:`, data);
+    res.json({ message: `${round} updated successfully!` });
+  } catch (error) {
+    console.error('❌ Error updating leaderboard:', error);
+    res.status(500).json({ error: 'Failed to update leaderboard' });
+  }
 });
 
 // ✅ Start Server
-
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => console.log(`🏴‍☠️ Server running on port ${PORT}`));

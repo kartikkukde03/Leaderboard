@@ -21,19 +21,16 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// ✅ Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log("✅ Connected to MongoDB Atlas"))
-.catch(err => console.error("❌ MongoDB Connection Error:", err));
+// ✅ Connect to MongoDB Atlas (Fixed Deprecation Warnings)
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB Atlas"))
+  .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
 // ✅ Session Management (Required for Admin Login)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'leaderboardsecret',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.MONGO_URI,
     collectionName: "sessions",
@@ -115,7 +112,7 @@ app.post('/update-leaderboard', async (req, res) => {
     );
 
     console.log(`✅ Updated ${round}:`, data);
-    res.json({ message: `${round} updated successfully!` });
+    res.json({ success: true, message: `${round} updated successfully!` }); // ✅ Always return message
   } catch (error) {
     console.error('❌ Error updating leaderboard:', error);
     res.status(500).json({ error: 'Failed to update leaderboard' });

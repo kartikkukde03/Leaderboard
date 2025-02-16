@@ -24,7 +24,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-// ✅ Fix: Session Management (Longer Expiration Time)
+// ✅ Fix: Session Management (Ensures Login Stays Active)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'leaderboardsecret',
   resave: false,
@@ -36,8 +36,8 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    secure: true, 
-    sameSite: 'None'
+    secure: false, // 🔹 Change to `true` if using HTTPS
+    sameSite: 'Lax'
   }
 }));
 
@@ -94,7 +94,10 @@ app.post('/login', (req, res) => {
 
 // ✅ Fix: Save Data (Prevent Unauthorized Error)
 app.post('/update-leaderboard', async (req, res) => {
+  console.log("🔍 Checking session for update-leaderboard...");
+  
   if (!req.session.isAdmin) {
+    console.log("❌ Unauthorized access detected.");
     return res.status(403).json({ error: 'Unauthorized' });
   }
 

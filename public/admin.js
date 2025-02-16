@@ -63,8 +63,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td><input type="text" value="${name}" placeholder="Pirate Name" /></td>
-      <td><input type="number" value="${score}" placeholder="Score" min="0" /></td>
+      <td><input type="text" value="${name}" /></td>
+      <td><input type="number" value="${score}" min="0" /></td>
       <td><button class="delete-row">❌ Remove</button></td>
     `;
 
@@ -73,7 +73,6 @@ document.addEventListener('DOMContentLoaded', function () {
     tableBody.appendChild(row);
   }
 
-  // ✅ Ensure "Add Pirate" button works
   addRowButtons.forEach(button => {
     button.addEventListener('click', () => {
       console.log("➕ Add Pirate button clicked");
@@ -82,7 +81,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // ✅ Fix: "Save Round" button should update leaderboard
   saveButtons.forEach(button => {
     button.addEventListener('click', async () => {
       console.log("💾 Save Round button clicked");
@@ -97,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const rows = document.querySelectorAll(`#admin-table-round${round} tbody tr`);
       const leaderboardData = Array.from(rows).map(row => {
         const inputs = row.querySelectorAll('input');
-        return { name: inputs[0]?.value.trim() || "Unknown Pirate", score: parseInt(inputs[1]?.value) || 0 };
+        return { name: inputs[0].value.trim(), score: parseInt(inputs[1].value) };
       });
 
       try {

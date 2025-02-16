@@ -45,12 +45,14 @@ const leaderboardSchema = new mongoose.Schema({
 });
 const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
 
-app.get('/leaderboard', async (req, res) => {
-  const leaderboards = await Leaderboard.find();
-  const leaderboardData = {};
-  leaderboards.forEach(lb => leaderboardData[lb.round] = lb.data);
-  res.json(leaderboardData);
+app.get('/keep-alive', (req, res) => {
+  if (req.session) {
+    req.session._garbage = Date();
+    req.session.touch();
+  }
+  res.status(200).json({ success: true, message: "Session refreshed" });
 });
+
 
 app.post('/login', (req, res) => {
   if (req.body.password === process.env.ADMIN_PASSWORD) {

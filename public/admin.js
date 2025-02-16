@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   console.log("✅ admin.js loaded");
 
-  // ✅ Store manually added pirates to prevent automatic resets
+  // ✅ Store manually added pirates (Fixes auto-adding issue)
   const addedPirates = { round1: [], round2: [], round3: [] };
 
   // ✅ Load leaderboard data
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        // ✅ Fix: Remove existing rows before adding new ones
+        // ✅ Fix: Remove only row data (not headers)
         tableBody.innerHTML = '';
 
         if (!data[`round${round}`] || data[`round${round}`].length === 0) {
@@ -37,9 +37,6 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
           data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score, false));
         }
-
-        // ✅ Keep manually added pirates after refresh
-        addedPirates[`round${round}`].forEach(pirate => addRow(round, pirate.name, pirate.score, true));
       });
 
     } catch (error) {
@@ -123,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // ✅ Fix: Ensure session persists longer to prevent unauthorized errors
+  // ✅ Fix: Keep session alive (No more Unauthorized Errors)
   async function keepSessionAlive() {
     try {
       await fetch(`${API_BASE_URL}/keep-alive`, { credentials: 'include' });

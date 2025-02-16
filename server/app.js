@@ -43,15 +43,30 @@ app.use(session({
 }));
 
 // ✅ Middleware to Check Admin Authentication
-function isAuthenticated(req, res, next) {
-  console.log("🔍 Checking session for authentication:", req.session);
-  if (req.session.isAdmin) {
-    console.log("✅ Admin authenticated");
-    return next();
+async function isAuthenticated(req, res, next) {
+  console.log("🔍 Checking session:", req.session);
+
+  // ✅ Manually Fetch Session from Store if Not Found
+  if (!req.session.isAdmin) {
+    try {
+      const session = await req.sessionStore.get(req.sessionID);
+      if (session && session.isAdmin) {
+        req.session.isAdmin = true;
+        console.log("✅ Restored isAdmin from session store.");
+        return next();
+      }
+    } catch (err) {
+      console.error("❌ Error retrieving session:", err);
+    }
+
+    console.log("❌ Unauthorized access detected");
+    return res.status(403).json({ error: 'Unauthorized. Please log in again.' });
   }
-  console.log("❌ Unauthorized access detected");
-  return res.status(403).json({ error: 'Unauthorized. Please log in again.' });
+
+  console.log("✅ Admin authenticated");
+  return next();
 }
+
 
 // ✅ Leaderboard Schema
 const leaderboardSchema = new mongoose.Schema({

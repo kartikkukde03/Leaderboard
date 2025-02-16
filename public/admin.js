@@ -92,28 +92,29 @@ document.addEventListener('DOMContentLoaded', function () {
         window.location.href = '/';
         return;
       }
-      
+  
       const round = button.dataset.round;
       const rows = document.querySelectorAll(`#admin-table-round${round} tbody tr`);
       const leaderboardData = Array.from(rows).map(row => {
         const inputs = row.querySelectorAll('input');
         return { name: inputs[0].value.trim(), score: parseInt(inputs[1].value) || 0 };
       });
-
+  
       try {
         const response = await fetch(`${API_BASE_URL}/update-leaderboard`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ round: `round${round}`, data: leaderboardData }),
-          credentials: 'include'
+          credentials: 'include'  // ✅ Ensures session is sent
         });
-
+  
         const result = await response.json();
         if (!response.ok) {
           console.error("❌ Error updating leaderboard:", result);
           alert(`❌ Error: ${result.error || "Unknown error"}`);
           return;
         }
+  
         console.log("✅ Leaderboard updated successfully:", result);
         alert("✅ Leaderboard updated successfully!");
         loadLeaderboards();
@@ -122,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   });
+  
 
   logoutButton.addEventListener('click', () => {
     fetch(`${API_BASE_URL}/logout`, { credentials: 'include' }).then(() => window.location.href = '/');

@@ -8,6 +8,22 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   let previousData = {}; // ✅ Store last known leaderboard state
+  let sessionExpired = false; // ✅ Track session expiry
+
+  async function checkSession() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/keep-alive`, { credentials: 'include' });
+      const data = await response.json();
+      if (!data.success) {
+        sessionExpired = true;
+        alert("❌ Session expired. Please log in again.");
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error("❌ Failed to verify session:", error);
+    }
+  }
+  setInterval(checkSession, 60000); // Check session every 60 seconds
 
   async function loadLeaderboards() {
     console.log("🔄 Fetching leaderboard data...");

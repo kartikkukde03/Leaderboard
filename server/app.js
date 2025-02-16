@@ -8,9 +8,9 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-// ✅ Fix: CORS Configuration (Allow Frontend to Send Credentials)
+// ✅ CORS Configuration
 app.use(cors({
-  origin: "https://leaderboard-iota-one.vercel.app", // Replace with your frontend URL
+  origin: "https://leaderboard-iota-one.vercel.app",
   credentials: true,
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]
@@ -19,12 +19,12 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// ✅ Fix: MongoDB Connection (Remove Deprecated Options)
+// ✅ MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-// ✅ Fix: Session Management (Ensures Login Stays Active)
+// ✅ Session Management
 app.use(session({
   secret: process.env.SESSION_SECRET || 'leaderboardsecret',
   resave: false,
@@ -46,7 +46,7 @@ app.use(session({
 async function isAuthenticated(req, res, next) {
   console.log("🔍 Checking session:", req.session);
 
-  // ✅ Manually Fetch Session from Store if Not Found
+  // Manually Fetch Session from Store if Not Found
   if (!req.session.isAdmin) {
     try {
       const session = await req.sessionStore.get(req.sessionID);
@@ -66,7 +66,6 @@ async function isAuthenticated(req, res, next) {
   console.log("✅ Admin authenticated");
   return next();
 }
-
 
 // ✅ Leaderboard Schema
 const leaderboardSchema = new mongoose.Schema({
@@ -97,7 +96,7 @@ app.get('/leaderboard', async (req, res) => {
   }
 });
 
-// ✅ Fix: Admin Login (Ensures Session Works)
+// ✅ Admin Login
 app.post('/login', (req, res) => {
   const { password } = req.body;
 
@@ -120,7 +119,7 @@ app.post('/login', (req, res) => {
   }
 });
 
-// ✅ Fix: Save Data (Allow Authorized Updates)
+// ✅ Save Data
 app.post('/update-leaderboard', isAuthenticated, async (req, res) => {
   console.log("🔍 Checking session for update-leaderboard:", req.session);
   const { round, data } = req.body;

@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   console.log("✅ admin.js loaded");
 
-  // ✅ Store manually added pirates
+  // ✅ Store manually added pirates (Fixes automatic new entries issue)
   const addedPirates = { round1: [], round2: [], round3: [] };
 
   // ✅ Load leaderboard data
@@ -29,17 +29,17 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        // ✅ Fix: Remove only row data (not headers)
+        // ✅ Fix: Clear only row data, keeping headers intact
         tableBody.innerHTML = '';
 
         if (!data[`round${round}`] || data[`round${round}`].length === 0) {
           tableBody.innerHTML += `<tr><td colspan="3" style="text-align:center;">☠️ No Pirates Yet ☠️</td></tr>`;
         } else {
-          data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score));
+          data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score, false));
         }
 
         // ✅ Re-add manually added pirates after refresh
-        addedPirates[`round${round}`].forEach(pirate => addRow(round, pirate.name, pirate.score));
+        addedPirates[`round${round}`].forEach(pirate => addRow(round, pirate.name, pirate.score, true));
       });
 
     } catch (error) {
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ✅ Function to add a new row
-  function addRow(round, name = '', score = '') {
+  function addRow(round, name = '', score = '', fromManualInput = true) {
     const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
     if (!tableBody) {
       console.error(`❌ Table for round ${round} not found!`);
@@ -66,13 +66,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     row.querySelector('.delete-row').addEventListener('click', () => {
       row.remove();
-      addedPirates[`round${round}`] = addedPirates[`round${round}`].filter(p => p.name !== name);
+      if (fromManualInput) {
+        addedPirates[`round${round}`] = addedPirates[`round${round}`].filter(p => p.name !== name);
+      }
     });
 
     tableBody.appendChild(row);
 
-    // ✅ Store manually added pirate
-    addedPirates[`round${round}`].push({ name, score });
+    // ✅ Store manually added pirate only if input is manual
+    if (fromManualInput) {
+      addedPirates[`round${round}`].push({ name, score });
+    }
   }
 
   // ✅ Ensure "Add Pirate" button works

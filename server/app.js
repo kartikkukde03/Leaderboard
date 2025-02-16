@@ -20,8 +20,10 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 
 // ✅ Fix: MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB Atlas"))
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
 // ✅ Fix: Session Management (Ensures Login Stays Active)
@@ -43,9 +45,12 @@ app.use(session({
 
 // ✅ Middleware to Check Admin Authentication
 function isAuthenticated(req, res, next) {
+  console.log("🔍 Checking session for authentication:", req.session);
   if (req.session.isAdmin) {
+    console.log("✅ Admin authenticated");
     return next();
   }
+  console.log("❌ Unauthorized access detected");
   return res.status(403).json({ error: 'Unauthorized. Please log in again.' });
 }
 
@@ -56,7 +61,7 @@ const leaderboardSchema = new mongoose.Schema({
 });
 const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
 
-// ✅ Fix: Keep-Alive Route (Prevents Unauthorized Logout)
+// ✅ Keep-Alive Route
 app.get('/keep-alive', isAuthenticated, (req, res) => {
   res.json({ success: true, message: "Session active" });
 });
@@ -89,6 +94,7 @@ app.post('/login', (req, res) => {
   if (password === process.env.ADMIN_PASSWORD) {
     req.session.isAdmin = true;
     req.session.save(() => {
+      console.log("✅ Admin session started");
       return res.json({ success: true, message: 'Login successful' });
     });
   } else {
@@ -98,8 +104,7 @@ app.post('/login', (req, res) => {
 
 // ✅ Fix: Save Data (Allow Authorized Updates)
 app.post('/update-leaderboard', isAuthenticated, async (req, res) => {
-  console.log("🔍 Checking session for update-leaderboard...");
-
+  console.log("🔍 Checking session for update-leaderboard:", req.session);
   const { round, data } = req.body;
 
   if (!round || !data) {
@@ -113,6 +118,7 @@ app.post('/update-leaderboard', isAuthenticated, async (req, res) => {
       { upsert: true, new: true }
     );
 
+    console.log(`✅ ${round} updated successfully!`);
     res.json({ success: true, message: `${round} updated successfully!` });
   } catch (error) {
     console.error('❌ Error updating leaderboard:', error);
@@ -122,8 +128,10 @@ app.post('/update-leaderboard', isAuthenticated, async (req, res) => {
 
 // ✅ Admin Logout
 app.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.json({ success: true, message: 'Logged out successfully' });
+  req.session.destroy(() => {
+    console.log("✅ Admin logged out");
+    res.json({ success: true, message: 'Logged out successfully' });
+  });
 });
 
 // ✅ Start Server

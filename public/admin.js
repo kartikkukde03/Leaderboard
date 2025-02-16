@@ -9,6 +9,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
   console.log("✅ admin.js loaded");
 
+  // ✅ Fix: Define addRow() before calling it inside loadLeaderboards()
+  function addRow(round, name = '', score = '', fromManualInput = true) {
+    const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
+    if (!tableBody) return;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td><input type="text" value="${name}" placeholder="Pirate Name" /></td>
+      <td><input type="number" value="${score}" placeholder="Score" min="0" /></td>
+      <td><button class="delete-row">❌ Remove</button></td>
+    `;
+
+    row.querySelector('.delete-row').addEventListener('click', () => {
+      row.remove();
+    });
+
+    tableBody.appendChild(row);
+  }
+
+  // ✅ Fix: Ensure loadLeaderboards() is declared AFTER addRow()
   async function loadLeaderboards() {
     console.log("🔄 Fetching leaderboard data...");
     try {
@@ -22,10 +42,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
         if (!tableBody) return;
 
-        tableBody.innerHTML = '';
+        tableBody.innerHTML = ''; // Clear previous entries
 
         if (!data[`round${round}`] || data[`round${round}`].length === 0) {
-          tableBody.innerHTML += `<tr><td colspan="3">☠️ No Pirates Yet ☠️</td></tr>`;
+          tableBody.innerHTML = `<tr><td colspan="3">☠️ No Pirates Yet ☠️</td></tr>`;
         } else {
           data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score, false));
         }
@@ -36,18 +56,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  async function keepSessionAlive() {
-    try {
-      await fetch(`${API_BASE_URL}/keep-alive`, { credentials: 'include' });
-      console.log("🔄 Session refreshed");
-    } catch (error) {
-      console.error("❌ Failed to refresh session:", error);
-    }
-  }
-  setInterval(keepSessionAlive, 60000); // Refresh session every 60 seconds
+  addRowButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const round = button.dataset.round;
+      addRow(round);
+    });
+  });
 
   saveButtons.forEach(button => {
     button.addEventListener('click', async () => {
+      console.log("💾 Save Round button clicked");
       const round = button.dataset.round;
       const rows = document.querySelectorAll(`#admin-table-round${round} tbody tr`);
       const leaderboardData = Array.from(rows).map(row => {

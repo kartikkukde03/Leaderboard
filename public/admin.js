@@ -23,6 +23,27 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   setInterval(checkSession, 60000);
 
+  async function loginAdmin() {
+    const password = prompt('Enter admin password:');
+    try {
+      const response = await fetch(`${API_BASE_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Login successful! Redirecting to admin panel...');
+        window.location.href = '/admin.html';
+      } else {
+        alert('❌ Invalid Password');
+      }
+    } catch (error) {
+      console.error('❌ Login Error:', error);
+    }
+  }
+
   async function loadLeaderboards() {
     try {
       const response = await fetch(`${API_BASE_URL}/leaderboard`, { credentials: 'include' });

@@ -41,6 +41,14 @@ app.use(session({
   }
 }));
 
+// ✅ Middleware to Check Admin Authentication
+function isAuthenticated(req, res, next) {
+  if (req.session.isAdmin) {
+    return next();
+  }
+  return res.status(403).json({ error: 'Unauthorized. Please log in again.' });
+}
+
 // ✅ Leaderboard Schema
 const leaderboardSchema = new mongoose.Schema({
   round: String,
@@ -49,12 +57,8 @@ const leaderboardSchema = new mongoose.Schema({
 const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
 
 // ✅ Fix: Keep-Alive Route (Prevents Unauthorized Logout)
-app.get('/keep-alive', (req, res) => {
-  if (req.session.isAdmin) {
-    res.json({ success: true, message: "Session active" });
-  } else {
-    res.status(403).json({ success: false, message: "Session expired" });
-  }
+app.get('/keep-alive', isAuthenticated, (req, res) => {
+  res.json({ success: true, message: "Session active" });
 });
 
 // ✅ Fetch Leaderboard Data
@@ -92,14 +96,9 @@ app.post('/login', (req, res) => {
   }
 });
 
-// ✅ Fix: Save Data (Prevent Unauthorized Error)
-app.post('/update-leaderboard', async (req, res) => {
+// ✅ Fix: Save Data (Allow Authorized Updates)
+app.post('/update-leaderboard', isAuthenticated, async (req, res) => {
   console.log("🔍 Checking session for update-leaderboard...");
-  
-  if (!req.session.isAdmin) {
-    console.log("❌ Unauthorized access detected.");
-    return res.status(403).json({ error: 'Unauthorized. Please log in again.' });
-  }
 
   const { round, data } = req.body;
 

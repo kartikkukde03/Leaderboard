@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const saveButtons = document.querySelectorAll('.save-btn');
   const spreadsheetTables = document.querySelectorAll('.spreadsheet-table');
 
-  console.log("✅ admin.js loaded"); // ✅ Debug log
+  console.log("✅ admin.js loaded");
 
   // ✅ Store manually added pirates
   const addedPirates = { round1: [], round2: [], round3: [] };
@@ -29,7 +29,9 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        tableBody.innerHTML = `<tr><th>Pirate Name</th><th>Score</th><th>⚔️ Action</th></tr>`;
+        // ✅ Fix: Remove only row data (not headers)
+        tableBody.innerHTML = '';
+
         if (!data[`round${round}`] || data[`round${round}`].length === 0) {
           tableBody.innerHTML += `<tr><td colspan="3" style="text-align:center;">☠️ No Pirates Yet ☠️</td></tr>`;
         } else {
@@ -87,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function () {
     button.addEventListener('click', async () => {
       console.log("💾 Save Round button clicked");
       const round = button.dataset.round;
-      const rows = document.querySelectorAll(`#admin-table-round${round} tbody tr:not(:first-child)`);
+      const rows = document.querySelectorAll(`#admin-table-round${round} tbody tr`);
       const leaderboardData = Array.from(rows).map(row => {
         const inputs = row.querySelectorAll('input');
         return { name: inputs[0]?.value.trim() || "Unknown Pirate", score: parseInt(inputs[1]?.value) || 0 };

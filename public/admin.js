@@ -9,26 +9,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
   console.log("✅ admin.js loaded");
 
-  // ✅ Fix: Define addRow() before calling it inside loadLeaderboards()
-  function addRow(round, name = '', score = '', fromManualInput = true) {
-    const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
-    if (!tableBody) return;
+  let sessionExpired = false;
 
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td><input type="text" value="${name}" placeholder="Pirate Name" /></td>
-      <td><input type="number" value="${score}" placeholder="Score" min="0" /></td>
-      <td><button class="delete-row">❌ Remove</button></td>
-    `;
-
-    row.querySelector('.delete-row').addEventListener('click', () => {
-      row.remove();
-    });
-
-    tableBody.appendChild(row);
+  // ✅ Fix: Function to Check Login Session
+  async function checkSession() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/keep-alive`, { credentials: 'include' });
+      const data = await response.json();
+      if (!data.success) {
+        sessionExpired = true;
+        alert("❌ Session expired. Please log in again.");
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error("❌ Failed to verify session:", error);
+    }
   }
 
-  // ✅ Fix: Ensure loadLeaderboards() is declared AFTER addRow()
+  setInterval(checkSession, 60000); // Refresh session every 60 seconds
+
+  // ✅ Fix: Load leaderboard data without duplicate headers
   async function loadLeaderboards() {
     console.log("🔄 Fetching leaderboard data...");
     try {
@@ -42,12 +42,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
         if (!tableBody) return;
 
-        tableBody.innerHTML = ''; // Clear previous entries
+        tableBody.innerHTML = '';
 
         if (!data[`round${round}`] || data[`round${round}`].length === 0) {
-          tableBody.innerHTML = `<tr><td colspan="3">☠️ No Pirates Yet ☠️</td></tr>`;
+          tableBody.innerHTML += `<tr><td colspan="3">☠️ No Pirates Yet ☠️</td></tr>`;
         } else {
-          data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score, false));
+          data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score));
         }
       });
 
@@ -56,16 +56,43 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // ✅ Fix: Ensure "Add Pirate" button works correctly
+  function addRow(round, name = '', score = '') {
+    const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
+    if (!tableBody) return;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td><input type="text" value="${name}" placeholder="Pirate Name" /></td>
+      <td><input type="number" value="${score}" placeholder="Score" min="0" /></td>
+      <td><button class="delete-row">❌ Remove</button></td>
+    `;
+
+    row.querySelector('.delete-row').addEventListener('click', () => row.remove());
+
+    tableBody.appendChild(row);
+  }
+
+  // ✅ Ensure "Add Pirate" button works
   addRowButtons.forEach(button => {
     button.addEventListener('click', () => {
+      console.log("➕ Add Pirate button clicked");
       const round = button.dataset.round;
       addRow(round);
     });
   });
 
+  // ✅ Fix: "Save Round" button should update leaderboard
   saveButtons.forEach(button => {
     button.addEventListener('click', async () => {
       console.log("💾 Save Round button clicked");
+
+      if (sessionExpired) {
+        alert("❌ Session expired. Please log in again.");
+        window.location.href = '/';
+        return;
+      }
+
       const round = button.dataset.round;
       const rows = document.querySelectorAll(`#admin-table-round${round} tbody tr`);
       const leaderboardData = Array.from(rows).map(row => {
@@ -83,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (response.status === 403) {
           alert("❌ Unauthorized. Please log in again.");
+          sessionExpired = true;
           window.location.href = '/';
           return;
         }
@@ -92,6 +120,22 @@ document.addEventListener('DOMContentLoaded', function () {
       } catch (error) {
         console.error("❌ Error updating leaderboard:", error);
       }
+    });
+  });
+
+  // ✅ Logout function
+  logoutButton.addEventListener('click', () => {
+    console.log("🚪 Logging out...");
+    fetch(`${API_BASE_URL}/logout`, { credentials: 'include' }).then(() => window.location.href = '/');
+  });
+
+  // ✅ Ensure round switching works
+  roundButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      console.log("🔄 Switching to round:", button.dataset.round);
+      const round = button.dataset.round;
+      spreadsheetTables.forEach(table => table.style.display = 'none');
+      document.getElementById(`spreadsheet-round${round}`).style.display = 'block';
     });
   });
 

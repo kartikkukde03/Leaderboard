@@ -45,12 +45,27 @@ const leaderboardSchema = new mongoose.Schema({
 });
 const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
 
-app.get('/keep-alive', (req, res) => {
-  if (req.session) {
-    req.session._garbage = Date();
-    req.session.touch();
+app.get('/leaderboard', async (req, res) => {
+  try {
+    console.log("🔄 Fetching leaderboard from database...");
+    
+    const leaderboards = await Leaderboard.find({});
+    if (!leaderboards || leaderboards.length === 0) {
+      console.warn("⚠️ No leaderboard data found.");
+      return res.json({ round1: [], round2: [], round3: [] }); 
+    }
+
+    const leaderboardData = { round1: [], round2: [], round3: [] };
+    leaderboards.forEach(lb => {
+      leaderboardData[lb.round] = lb.data;
+    });
+
+    console.log("✅ Leaderboard Data Retrieved:", leaderboardData);
+    res.json(leaderboardData);
+  } catch (error) {
+    console.error('❌ Error fetching leaderboard:', error);
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
   }
-  res.status(200).json({ success: true, message: "Session refreshed" });
 });
 
 

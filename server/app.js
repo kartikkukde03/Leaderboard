@@ -8,7 +8,7 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-// ✅ Fix: Enable CORS for Frontend & Allow Cookies for Authentication
+// ✅ Fix: CORS Configuration to Allow Frontend Requests
 app.use(cors({
   origin: "https://leaderboard-iota-one.vercel.app", // Change to your frontend URL
   credentials: true, 
@@ -84,7 +84,9 @@ app.post('/login', (req, res) => {
 
   if (password === process.env.ADMIN_PASSWORD) {
     req.session.isAdmin = true;
-    return res.json({ success: true, message: 'Login successful' });
+    req.session.save(() => {
+      return res.json({ success: true, message: 'Login successful' });
+    });
   } else {
     return res.status(401).json({ success: false, message: 'Invalid password' });
   }

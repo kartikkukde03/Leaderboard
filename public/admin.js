@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const API_BASE_URL = "https://leaderboard-production-6462.up.railway.app"; // ✅ Backend API URL
+  const API_BASE_URL = "https://leaderboard-production-6462.up.railway.app";
 
   const roundButtons = document.querySelectorAll('.round-btn');
   const logoutButton = document.getElementById('logout-btn');
@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   console.log("✅ admin.js loaded");
 
-  // ✅ Store manually added pirates (Fixes automatic new entries issue)
+  // ✅ Store manually added pirates to prevent automatic resets
   const addedPirates = { round1: [], round2: [], round3: [] };
 
   // ✅ Load leaderboard data
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        // ✅ Fix: Clear only row data, keeping headers intact
+        // ✅ Fix: Remove existing rows before adding new ones
         tableBody.innerHTML = '';
 
         if (!data[`round${round}`] || data[`round${round}`].length === 0) {
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
           data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score, false));
         }
 
-        // ✅ Re-add manually added pirates after refresh
+        // ✅ Keep manually added pirates after refresh
         addedPirates[`round${round}`].forEach(pirate => addRow(round, pirate.name, pirate.score, true));
       });
 
@@ -59,8 +59,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td><input type="text" value="${name || ''}" placeholder="Pirate Name" /></td>
-      <td><input type="number" value="${score || ''}" placeholder="Score" min="0" /></td>
+      <td><input type="text" value="${name}" placeholder="Pirate Name" /></td>
+      <td><input type="number" value="${score}" placeholder="Score" min="0" /></td>
       <td><button class="delete-row">❌ Remove</button></td>
     `;
 
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
           credentials: 'include'
         });
 
-        if (!response.ok) {
+        if (response.status === 403) {
           alert("❌ Unauthorized. Please log in again.");
           window.location.href = '/';
           return;
@@ -122,6 +122,17 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   });
+
+  // ✅ Fix: Ensure session persists longer to prevent unauthorized errors
+  async function keepSessionAlive() {
+    try {
+      await fetch(`${API_BASE_URL}/keep-alive`, { credentials: 'include' });
+      console.log("🔄 Session refreshed");
+    } catch (error) {
+      console.error("❌ Failed to refresh session:", error);
+    }
+  }
+  setInterval(keepSessionAlive, 60000); // Refresh session every 60 seconds
 
   // ✅ Logout function
   logoutButton.addEventListener('click', () => {

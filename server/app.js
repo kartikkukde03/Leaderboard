@@ -19,11 +19,9 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// ✅ Fix: MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => console.log("✅ Connected to MongoDB Atlas"))
+// ✅ Fix: MongoDB Connection (Remove Deprecated Options)
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
 // ✅ Fix: Session Management (Ensures Login Stays Active)
@@ -35,15 +33,14 @@ app.use(session({
     mongoUrl: process.env.MONGO_URI,
     collectionName: "sessions",
     ttl: 24 * 60 * 60, // 24 Hours Session Expiry
-    autoRemove: 'native' // Ensure sessions are removed properly
+    autoRemove: 'native'
   }),
   cookie: {
     httpOnly: true,
-    secure: false, // Set to true if using HTTPS
+    secure: false, // Change to `true` if using HTTPS
     sameSite: 'Lax'
   }
 }));
-
 
 // ✅ Middleware to Check Admin Authentication
 function isAuthenticated(req, res, next) {
@@ -95,25 +92,6 @@ app.post('/login', (req, res) => {
 
   if (password === process.env.ADMIN_PASSWORD) {
     req.session.isAdmin = true;
-    req.session.save(() => {
-      console.log("✅ Admin session started");
-      return res.json({ success: true, message: 'Login successful' });
-    });
-  } else {
-    return res.status(401).json({ success: false, message: 'Invalid password' });
-  }
-});
-
-// ✅ Fix: Save Data (Allow Authorized Updates)
-app.post('/login', (req, res) => {
-  const { password } = req.body;
-
-  if (!password) {
-    return res.status(400).json({ success: false, message: 'Password required' });
-  }
-
-  if (password === process.env.ADMIN_PASSWORD) {
-    req.session.isAdmin = true;
     req.session.save((err) => {
       if (err) {
         console.error("❌ Error saving session:", err);
@@ -127,6 +105,29 @@ app.post('/login', (req, res) => {
   }
 });
 
+// ✅ Fix: Save Data (Allow Authorized Updates)
+app.post('/update-leaderboard', isAuthenticated, async (req, res) => {
+  console.log("🔍 Checking session for update-leaderboard:", req.session);
+  const { round, data } = req.body;
+
+  if (!round || !data) {
+    return res.status(400).json({ error: 'Invalid data format. Provide round and data.' });
+  }
+
+  try {
+    await Leaderboard.findOneAndUpdate(
+      { round },
+      { round, data },
+      { upsert: true, new: true }
+    );
+
+    console.log(`✅ ${round} updated successfully!`);
+    res.json({ success: true, message: `${round} updated successfully!` });
+  } catch (error) {
+    console.error('❌ Error updating leaderboard:', error);
+    res.status(500).json({ error: 'Failed to update leaderboard' });
+  }
+});
 
 // ✅ Admin Logout
 app.get('/logout', (req, res) => {

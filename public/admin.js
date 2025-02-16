@@ -110,9 +110,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const result = await response.json();
         if (!response.ok) {
+          console.error("❌ Error updating leaderboard:", result);
           alert(`❌ Error: ${result.error || "Unknown error"}`);
           return;
         }
+        console.log("✅ Leaderboard updated successfully:", result);
         alert("✅ Leaderboard updated successfully!");
         loadLeaderboards();
       } catch (error) {

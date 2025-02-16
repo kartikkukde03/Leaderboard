@@ -1,88 +1,93 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const session = require('express-session');
-const MongoStore = require('connect-mongo');
-const cors = require('cors');
-const bodyParser = require('body-parser');
+document.addEventListener('DOMContentLoaded', function () {
+  const API_BASE_URL = "https://leaderboard-production-6462.up.railway.app";
 
-const app = express();
+  const roundButtons = document.querySelectorAll('.round-btn');
+  const logoutButton = document.getElementById('logout-btn');
+  const addRowButtons = document.querySelectorAll('.add-row');
+  const saveButtons = document.querySelectorAll('.save-btn');
+  const spreadsheetTables = document.querySelectorAll('.spreadsheet-table');
 
-app.use(cors({
-  origin: "https://leaderboard-iota-one.vercel.app",
-  credentials: true,
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
-}));
+  console.log("✅ admin.js loaded");
 
-app.use(bodyParser.json());
-app.use(express.static('public'));
+  async function loadLeaderboards() {
+    console.log("🔄 Fetching leaderboard data...");
+    try {
+      const response = await fetch(`${API_BASE_URL}/leaderboard`, { credentials: 'include' });
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB Atlas"))
-  .catch(err => console.error("❌ MongoDB Connection Error:", err));
+      const data = await response.json();
+      console.log("✅ Leaderboard Data:", data);
 
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'leaderboardsecret',
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,
-    collectionName: "sessions",
-    ttl: 24 * 60 * 60
-  }),
-  cookie: {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'None',
-    maxAge: 24 * 60 * 60 * 1000
-  }
-}));
+      ['1', '2', '3'].forEach(round => {
+        const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
+        if (!tableBody) return;
 
-const leaderboardSchema = new mongoose.Schema({
-  round: String,
-  data: [{ name: String, score: Number }]
-});
-const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
+        tableBody.innerHTML = '';
 
-app.get('/leaderboard', async (req, res) => {
-  try {
-    console.log("🔄 Fetching leaderboard from database...");
-    
-    const leaderboards = await Leaderboard.find({});
-    if (!leaderboards || leaderboards.length === 0) {
-      console.warn("⚠️ No leaderboard data found.");
-      return res.json({ round1: [], round2: [], round3: [] }); 
+        if (!data[`round${round}`] || data[`round${round}`].length === 0) {
+          tableBody.innerHTML += `<tr><td colspan="3">☠️ No Pirates Yet ☠️</td></tr>`;
+        } else {
+          data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score, false));
+        }
+      });
+
+    } catch (error) {
+      console.error("❌ Error loading leaderboard:", error);
     }
+  }
 
-    const leaderboardData = { round1: [], round2: [], round3: [] };
-    leaderboards.forEach(lb => {
-      leaderboardData[lb.round] = lb.data;
+  function addRow(round, name = '', score = '', fromManualInput = true) {
+    const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
+    if (!tableBody) return;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td><input type="text" value="${name}" /></td>
+      <td><input type="number" value="${score}" /></td>
+      <td><button class="delete-row">❌ Remove</button></td>
+    `;
+
+    row.querySelector('.delete-row').addEventListener('click', () => row.remove());
+    tableBody.appendChild(row);
+  }
+
+  addRowButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const round = button.dataset.round;
+      addRow(round);
     });
+  });
 
-    console.log("✅ Leaderboard Data Retrieved:", leaderboardData);
-    res.json(leaderboardData);
-  } catch (error) {
-    console.error('❌ Error fetching leaderboard:', error);
-    res.status(500).json({ error: 'Failed to fetch leaderboard' });
-  }
+  saveButtons.forEach(button => {
+    button.addEventListener('click', async () => {
+      const round = button.dataset.round;
+      const rows = document.querySelectorAll(`#admin-table-round${round} tbody tr`);
+      const leaderboardData = Array.from(rows).map(row => {
+        const inputs = row.querySelectorAll('input');
+        return { name: inputs[0]?.value.trim() || "Unknown Pirate", score: parseInt(inputs[1]?.value) || 0 };
+      });
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/update-leaderboard`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ round: `round${round}`, data: leaderboardData }),
+          credentials: 'include'
+        });
+
+        if (response.status === 403) {
+          alert("❌ Unauthorized. Please log in again.");
+          window.location.href = '/';
+          return;
+        }
+
+        alert("✅ Leaderboard updated successfully!");
+        loadLeaderboards();
+      } catch (error) {
+        console.error("❌ Error updating leaderboard:", error);
+      }
+    });
+  });
+
+  loadLeaderboards();
 });
-
-
-app.post('/login', (req, res) => {
-  if (req.body.password === process.env.ADMIN_PASSWORD) {
-    req.session.isAdmin = true;
-    res.json({ success: true });
-  } else {
-    res.status(401).json({ success: false });
-  }
-});
-
-app.post('/update-leaderboard', async (req, res) => {
-  if (!req.session.isAdmin) return res.status(403).json({ error: 'Unauthorized' });
-  await Leaderboard.findOneAndUpdate({ round: req.body.round }, req.body, { upsert: true });
-  res.json({ success: true });
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🏴‍☠️ Server running on port ${PORT}`));

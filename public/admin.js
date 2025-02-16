@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   console.log("✅ admin.js loaded");
 
-  // ✅ Store manually added pirates (Fixes auto-adding issue)
+  // ✅ Fix: Prevent multiple table headers & duplicates
   const addedPirates = { round1: [], round2: [], round3: [] };
 
   // ✅ Load leaderboard data
@@ -24,16 +24,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
       ['1', '2', '3'].forEach(round => {
         const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
-        if (!tableBody) {
-          console.error(`❌ Table for round ${round} not found!`);
-          return;
-        }
+        if (!tableBody) return;
 
-        // ✅ Fix: Remove only row data (not headers)
         tableBody.innerHTML = '';
 
         if (!data[`round${round}`] || data[`round${round}`].length === 0) {
-          tableBody.innerHTML += `<tr><td colspan="3" style="text-align:center;">☠️ No Pirates Yet ☠️</td></tr>`;
+          tableBody.innerHTML += `<tr><td colspan="3">☠️ No Pirates Yet ☠️</td></tr>`;
         } else {
           data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score, false));
         }
@@ -44,15 +40,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // ✅ Function to add a new row
+  // ✅ Fix: "Add Pirate" button should work properly
   function addRow(round, name = '', score = '', fromManualInput = true) {
     const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
-    if (!tableBody) {
-      console.error(`❌ Table for round ${round} not found!`);
-      return;
-    }
-
-    console.log(`➕ Adding pirate to Round ${round}`);
+    if (!tableBody) return;
 
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -70,7 +61,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     tableBody.appendChild(row);
 
-    // ✅ Store manually added pirate only if input is manual
     if (fromManualInput) {
       addedPirates[`round${round}`].push({ name, score });
     }
@@ -85,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // ✅ Save leaderboard data
+  // ✅ Fix: "Save Round" button should update leaderboard
   saveButtons.forEach(button => {
     button.addEventListener('click', async () => {
       console.log("💾 Save Round button clicked");
@@ -95,8 +85,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const inputs = row.querySelectorAll('input');
         return { name: inputs[0]?.value.trim() || "Unknown Pirate", score: parseInt(inputs[1]?.value) || 0 };
       });
-
-      console.log(`📤 Sending update for Round ${round}:`, leaderboardData);
 
       try {
         const response = await fetch(`${API_BASE_URL}/update-leaderboard`, {
@@ -147,6 +135,5 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  loadLeaderboards(); // ✅ Load leaderboard on page load
-  setInterval(loadLeaderboards, 5000); // ✅ Auto-refresh leaderboard every 5 seconds
+  loadLeaderboards();
 });

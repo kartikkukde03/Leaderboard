@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // ✅ Auto-refresh leaderboard every 5 seconds
-  setInterval(loadLeaderboards, 5000000000000000000);
+  setInterval(loadLeaderboards, 5000);
 
   // ✅ Load leaderboard on page load
   loadLeaderboards();

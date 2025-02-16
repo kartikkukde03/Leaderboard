@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   let sessionExpired = false;
 
-  // ✅ Fix: Function to Check Login Session
+  // ✅ Function to Keep Session Active
   async function checkSession() {
     try {
       const response = await fetch(`${API_BASE_URL}/keep-alive`, { credentials: 'include' });
@@ -25,10 +25,9 @@ document.addEventListener('DOMContentLoaded', function () {
       console.error("❌ Failed to verify session:", error);
     }
   }
-
   setInterval(checkSession, 60000); // Refresh session every 60 seconds
 
-  // ✅ Fix: Load leaderboard data without duplicate headers
+  // ✅ Load leaderboard data without duplicate headers
   async function loadLeaderboards() {
     console.log("🔄 Fetching leaderboard data...");
     try {
@@ -47,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!data[`round${round}`] || data[`round${round}`].length === 0) {
           tableBody.innerHTML += `<tr><td colspan="3">☠️ No Pirates Yet ☠️</td></tr>`;
         } else {
-          data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score));
+          data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score, false));
         }
       });
 
@@ -56,15 +55,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // ✅ Fix: Ensure "Add Pirate" button works correctly
-  function addRow(round, name = '', score = '') {
+  // ✅ Ensure "Add Pirate" button works correctly
+  function addRow(round, name = '', score = '', manualInput = true) {
     const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
     if (!tableBody) return;
 
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td><input type="text" value="${name}" /></td>
-      <td><input type="number" value="${score}" min="0" /></td>
+      <td><input type="text" value="${name}" placeholder="Pirate Name" /></td>
+      <td><input type="number" value="${score}" placeholder="Score" min="0" /></td>
       <td><button class="delete-row">❌ Remove</button></td>
     `;
 
@@ -95,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const rows = document.querySelectorAll(`#admin-table-round${round} tbody tr`);
       const leaderboardData = Array.from(rows).map(row => {
         const inputs = row.querySelectorAll('input');
-        return { name: inputs[0].value.trim(), score: parseInt(inputs[1].value) };
+        return { name: inputs[0].value.trim(), score: parseInt(inputs[1].value) || 0 };
       });
 
       try {

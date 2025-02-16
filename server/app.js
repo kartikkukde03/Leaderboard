@@ -8,10 +8,10 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-// ✅ Fix: CORS Configuration to Allow Frontend Requests
+// ✅ Fix: CORS Configuration (Allows Frontend Access)
 app.use(cors({
-  origin: "https://leaderboard-iota-one.vercel.app", // Change to your frontend URL
-  credentials: true, 
+  origin: "https://leaderboard-iota-one.vercel.app", // Your Frontend URL
+  credentials: true,
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]
 }));
@@ -36,7 +36,7 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    secure: false, // 🔹 Change to `true` if using HTTPS
+    secure: false, // Set to `true` if using HTTPS
     sameSite: 'Lax'
   }
 }));

@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const API_BASE_URL = "https://leaderboard-production-6462.up.railway.app";  // Correct API URL
+  const API_BASE_URL = "https://leaderboard-production-6462.up.railway.app";
 
   const leaderboardContainers = {
     round1: document.querySelector('#leaderboard-round1 tbody'),
@@ -7,30 +7,33 @@ document.addEventListener('DOMContentLoaded', function () {
     round3: document.querySelector('#leaderboard-round3 tbody')
   };
 
-  let previousData = {}; // Store last known leaderboard state to avoid unnecessary updates
+  let previousData = {}; // ✅ Store last known leaderboard state
 
   async function loadLeaderboards() {
+    console.log("🔄 Fetching leaderboard data...");
     try {
-      const response = await fetch(`${API_BASE_URL}/leaderboard`);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      const response = await fetch(`${API_BASE_URL}/leaderboard`, { credentials: 'include' });
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
       const data = await response.json();
-      console.log("🔍 Fetched Leaderboard Data:", data); // ✅ Debugging log
+      console.log("✅ Leaderboard Data:", data);
 
-      if (JSON.stringify(data) === JSON.stringify(previousData)) return; // Skip update if no change
+      // ✅ Prevents duplicate leaderboard updates
+      if (JSON.stringify(data) === JSON.stringify(previousData)) return;
       previousData = data;
 
       Object.keys(leaderboardContainers).forEach(round => {
         const leaderboardBody = leaderboardContainers[round];
-        leaderboardBody.innerHTML = ''; // Clear previous data
+        leaderboardBody.innerHTML = ''; // ✅ Clears previous data
 
         if (!data[round] || data[round].length === 0) {
           const row = document.createElement('tr');
-          row.innerHTML = `<td colspan="3" style="text-align:center; font-style:italic;">No data available for ${round.replace('round', 'Round ')} ☠️</td>`;
+          row.innerHTML = `<td colspan="3" style="text-align:center; font-style:italic;">☠️ No Pirates Yet ☠️</td>`;
           leaderboardBody.appendChild(row);
           return;
         }
 
+        // ✅ Add leaderboard entries dynamically
         data[round].forEach((entry, index) => {
           const row = document.createElement('tr');
           row.innerHTML = `<td>${index + 1}</td><td>${entry.name}</td><td>${entry.score}</td>`;
@@ -38,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       });
     } catch (error) {
-      console.error('❌ Error loading leaderboard:', error);
+      console.error("❌ Error loading leaderboard:", error);
     }
   }
 
@@ -51,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
-        credentials: 'include' // Ensure session persistence
+        credentials: 'include' // ✅ Ensure session persistence
       });
 
       const data = await response.json();
@@ -59,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (data.success) {
         alert('✅ Login successful! Redirecting to admin panel...');
-        window.location.href = '/admin.html'; // Ensure proper redirection
+        window.location.href = '/admin.html'; // ✅ Ensure proper redirection
       } else {
         alert('❌ Invalid Password, you scallywag! ☠️');
       }
@@ -69,6 +72,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  loadLeaderboards(); // Load data on page load
-  setInterval(loadLeaderboards, 5000); // Auto-refresh leaderboard every 5 seconds
+  // ✅ Auto-refresh leaderboard every 5 seconds
+  setInterval(loadLeaderboards, 5000);
+
+  // ✅ Load leaderboard on page load
+  loadLeaderboards();
 });

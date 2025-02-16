@@ -1,142 +1,155 @@
-document.addEventListener('DOMContentLoaded', function () {
-  const API_BASE_URL = "https://leaderboard-production-6462.up.railway.app";
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
+const cors = require('cors');
+const bodyParser = require('body-parser');
 
-  const roundButtons = document.querySelectorAll('.round-btn');
-  const logoutButton = document.getElementById('logout-btn');
-  const addRowButtons = document.querySelectorAll('.add-row');
-  const saveButtons = document.querySelectorAll('.save-btn');
-  const spreadsheetTables = document.querySelectorAll('.spreadsheet-table');
-  let sessionExpired = false; // Track session expiry
+const app = express();
 
-  async function checkSession() {
+// ✅ Fix: CORS Configuration (Allow Frontend to Send Credentials)
+app.use(cors({
+  origin: "https://leaderboard-iota-one.vercel.app", // Replace with your frontend URL
+  credentials: true,
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+app.use(bodyParser.json());
+app.use(express.static('public'));
+
+// ✅ Fix: MongoDB Connection (Remove Deprecated Options)
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB Atlas"))
+  .catch(err => console.error("❌ MongoDB Connection Error:", err));
+
+// ✅ Fix: Session Management (Ensures Login Stays Active)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'leaderboardsecret',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    collectionName: "sessions",
+    ttl: 24 * 60 * 60, // 24 Hours Session Expiry
+    autoRemove: 'native'
+  }),
+  cookie: {
+    httpOnly: true,
+    secure: true, // ✅ Set this to `true` if using HTTPS
+    sameSite: 'None' // ✅ Ensures cross-origin requests work
+  }
+}));
+
+// ✅ Middleware to Check Admin Authentication
+async function isAuthenticated(req, res, next) {
+  console.log("🔍 Checking session before authentication:", req.session);
+
+  if (!req.session.isAdmin) {
     try {
-      const response = await fetch(`${API_BASE_URL}/keep-alive`, { credentials: 'include' });
-      const data = await response.json();
-      if (!data.success) {
-        sessionExpired = true;
-        alert("❌ Session expired. Please log in again.");
-        window.location.href = '/';
+      const session = await req.sessionStore.get(req.sessionID);
+      if (session && session.isAdmin) {
+        req.session.isAdmin = true;
+        console.log("✅ Restored isAdmin from session store.");
+        return next();
       }
-    } catch (error) {
-      console.error("❌ Failed to verify session:", error);
+    } catch (err) {
+      console.error("❌ Error retrieving session:", err);
     }
-  }
-  setInterval(checkSession, 60000); // Check session every 60 seconds
 
-  async function loginAdmin() {
-    const password = prompt('Enter admin password:');
-    try {
-      const response = await fetch(`${API_BASE_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-        credentials: 'include'
-      });
-      const data = await response.json();
-      if (data.success) {
-        alert('✅ Login successful! Redirecting to admin panel...');
-        window.location.href = '/admin.html';
-      } else {
-        alert('❌ Invalid Password');
-      }
-    } catch (error) {
-      console.error('❌ Login Error:', error);
-    }
+    console.log("❌ Unauthorized access detected");
+    return res.status(403).json({ error: 'Unauthorized. Please log in again.' });
   }
 
-  async function loadLeaderboards() {
-    console.log("🔄 Fetching leaderboard data...");
-    try {
-      const response = await fetch(`${API_BASE_URL}/leaderboard`, { credentials: 'include' });
-      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-      const data = await response.json();
-      console.log("✅ Leaderboard Data:", data);
+  console.log("✅ Admin authenticated");
+  return next();
+}
 
-      ['1', '2', '3'].forEach(round => {
-        const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
-        if (!tableBody) return;
-        tableBody.innerHTML = '';
-        if (!data[`round${round}`] || data[`round${round}`].length === 0) {
-          tableBody.innerHTML += `<tr><td colspan="3">☠️ No Pirates Yet ☠️</td></tr>`;
-        } else {
-          data[`round${round}`].forEach(entry => addRow(round, entry.name, entry.score, false));
-        }
-      });
-    } catch (error) {
-      console.error("❌ Error loading leaderboard:", error);
-    }
-  }
-
-  function addRow(round, name = '', score = '', manualInput = true) {
-    const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
-    if (!tableBody) return;
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td><input type="text" value="${name}" placeholder="Pirate Name" /></td>
-      <td><input type="number" value="${score}" placeholder="Score" min="0" /></td>
-      <td><button class="delete-row">❌ Remove</button></td>
-    `;
-    row.querySelector('.delete-row').addEventListener('click', () => row.remove());
-    tableBody.appendChild(row);
-  }
-
-  addRowButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const round = button.dataset.round;
-      addRow(round);
-    });
-  });
-
-  saveButtons.forEach(button => {
-    button.addEventListener('click', async () => {
-      if (sessionExpired) {
-        alert("❌ Session expired. Please log in again.");
-        window.location.href = '/';
-        return;
-      }
-  
-      const round = button.dataset.round;
-      const rows = document.querySelectorAll(`#admin-table-round${round} tbody tr`);
-      const leaderboardData = Array.from(rows).map(row => {
-        const inputs = row.querySelectorAll('input');
-        return { name: inputs[0].value.trim(), score: parseInt(inputs[1].value) || 0 };
-      });
-  
-      try {
-        const response = await fetch(`${API_BASE_URL}/update-leaderboard`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ round: `round${round}`, data: leaderboardData }),
-          credentials: 'include'  // Ensure session is sent
-        });
-  
-        const result = await response.json();
-        if (!response.ok) {
-          console.error("❌ Error updating leaderboard:", result);
-          alert(`❌ Error: ${result.error || "Unknown error"}`);
-          return;
-        }
-  
-        console.log("✅ Leaderboard updated successfully:", result);
-        alert("✅ Leaderboard updated successfully!");
-        loadLeaderboards();
-      } catch (error) {
-        console.error("❌ Error updating leaderboard:", error);
-      }
-    });
-  });
-
-  logoutButton.addEventListener('click', () => {
-    fetch(`${API_BASE_URL}/logout`, { credentials: 'include' }).then(() => window.location.href = '/');
-  });
-
-  roundButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const round = button.dataset.round;
-      spreadsheetTables.forEach(table => table.style.display = 'none');
-      document.getElementById(`spreadsheet-round${round}`).style.display = 'block';
-    });
-  });
-
-  loadLeaderboards();
+// ✅ Leaderboard Schema
+const leaderboardSchema = new mongoose.Schema({
+  round: String,
+  data: [{ name: String, score: Number }]
 });
+const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
+
+// ✅ Keep-Alive Route
+app.get('/keep-alive', isAuthenticated, (req, res) => {
+  res.json({ success: true, message: "Session active" });
+});
+
+// ✅ Fetch Leaderboard Data
+app.get('/leaderboard', async (req, res) => {
+  try {
+    const leaderboards = await Leaderboard.find();
+    const leaderboardData = { round1: [], round2: [], round3: [] };
+
+    leaderboards.forEach(lb => {
+      leaderboardData[lb.round] = lb.data;
+    });
+
+    res.json(leaderboardData);
+  } catch (error) {
+    console.error('❌ Error fetching leaderboard:', error);
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+  }
+});
+
+// ✅ Fix: Admin Login (Ensures Session Works)
+app.post('/login', (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ success: false, message: 'Password required' });
+  }
+
+  if (password === process.env.ADMIN_PASSWORD) {
+    req.session.isAdmin = true;
+    req.session.save((err) => {
+      if (err) {
+        console.error("❌ Error saving session:", err);
+        return res.status(500).json({ success: false, message: 'Session save failed' });
+      }
+      console.log("✅ Admin session started:", req.session);
+      return res.json({ success: true, message: 'Login successful' });
+    });
+  } else {
+    return res.status(401).json({ success: false, message: 'Invalid password' });
+  }
+});
+
+// ✅ Fix: Save Data (Allow Authorized Updates)
+app.post('/update-leaderboard', isAuthenticated, async (req, res) => {
+  console.log("🔍 Checking session for update-leaderboard:", req.session);
+  const { round, data } = req.body;
+
+  if (!round || !data) {
+    return res.status(400).json({ error: 'Invalid data format. Provide round and data.' });
+  }
+
+  try {
+    await Leaderboard.findOneAndUpdate(
+      { round },
+      { round, data },
+      { upsert: true, new: true }
+    );
+
+    console.log(`✅ ${round} updated successfully!`);
+    res.json({ success: true, message: `${round} updated successfully!` });
+  } catch (error) {
+    console.error('❌ Error updating leaderboard:', error);
+    res.status(500).json({ error: 'Failed to update leaderboard' });
+  }
+});
+
+// ✅ Admin Logout
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    console.log("✅ Admin logged out");
+    res.json({ success: true, message: 'Logged out successfully' });
+  });
+});
+
+// ✅ Start Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, "0.0.0.0", () => console.log(`🏴‍☠️ Server running on port ${PORT}`));

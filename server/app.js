@@ -8,9 +8,9 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-// ✅ Fix: CORS Configuration (Allows Frontend Access)
+// ✅ Fix: CORS Configuration (Allow Frontend to Send Credentials)
 app.use(cors({
-  origin: "https://leaderboard-iota-one.vercel.app", // Your Frontend URL
+  origin: "https://leaderboard-iota-one.vercel.app", // Replace with your frontend URL
   credentials: true,
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]
@@ -36,7 +36,7 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    secure: false, // Set to `true` if using HTTPS
+    secure: false, // Change to `true` if using HTTPS
     sameSite: 'Lax'
   }
 }));
@@ -48,7 +48,7 @@ const leaderboardSchema = new mongoose.Schema({
 });
 const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
 
-// ✅ Keep-Alive Route (Prevents Unauthorized Logout)
+// ✅ Fix: Keep-Alive Route (Prevents Unauthorized Logout)
 app.get('/keep-alive', (req, res) => {
   if (req.session.isAdmin) {
     res.json({ success: true, message: "Session active" });
@@ -98,7 +98,7 @@ app.post('/update-leaderboard', async (req, res) => {
   
   if (!req.session.isAdmin) {
     console.log("❌ Unauthorized access detected.");
-    return res.status(403).json({ error: 'Unauthorized' });
+    return res.status(403).json({ error: 'Unauthorized. Please log in again.' });
   }
 
   const { round, data } = req.body;

@@ -10,7 +10,7 @@ const app = express();
 
 // ✅ CORS Configuration
 app.use(cors({
-  origin: "https://leaderboard-iota-one.vercel.app",
+  origin: "https://leaderboard-iota-one.vercel.app", // Replace with your frontend URL
   credentials: true,
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]

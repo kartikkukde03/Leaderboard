@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const addRowButtons = document.querySelectorAll('.add-row');
   const saveButtons = document.querySelectorAll('.save-btn');
   const spreadsheetTables = document.querySelectorAll('.spreadsheet-table');
-  let sessionExpired = false;
+  let sessionExpired = false; // Track session expiry
 
   async function checkSession() {
     try {
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
       console.error("❌ Failed to verify session:", error);
     }
   }
-  setInterval(checkSession, 60000);
+  setInterval(checkSession, 60000); // Check session every 60 seconds
 
   async function loginAdmin() {
     const password = prompt('Enter admin password:');
@@ -45,11 +45,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   async function loadLeaderboards() {
+    console.log("🔄 Fetching leaderboard data...");
     try {
       const response = await fetch(`${API_BASE_URL}/leaderboard`, { credentials: 'include' });
       if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
       const data = await response.json();
-      
+      console.log("✅ Leaderboard Data:", data);
+
       ['1', '2', '3'].forEach(round => {
         const tableBody = document.querySelector(`#admin-table-round${round} tbody`);
         if (!tableBody) return;
@@ -105,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function () {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ round: `round${round}`, data: leaderboardData }),
-          credentials: 'include'  // ✅ Ensures session is sent
+          credentials: 'include'  // Ensure session is sent
         });
   
         const result = await response.json();
@@ -123,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   });
-  
 
   logoutButton.addEventListener('click', () => {
     fetch(`${API_BASE_URL}/logout`, { credentials: 'include' }).then(() => window.location.href = '/');

@@ -10,10 +10,24 @@ const app = express();
 
 // ✅ CORS Configuration
 app.use(cors({
-  origin: "https://leaderboard-iota-one.vercel.app", // Replace with your frontend URL
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      "https://leaderboard-iota-one.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:5000",
+      "http://127.0.0.1:5000",
+      "http://127.0.0.1:3000"
+    ];
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(null, false);
+    }
+    return callback(null, true);
+  },
   credentials: true,
   methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
+  allowedHeaders: ["Content-Type", "Accept"]
 }));
 
 app.use(bodyParser.json());
@@ -41,7 +55,8 @@ app.use(session({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Only secure in production
-    sameSite: 'None'
+    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
   }
 }));
 

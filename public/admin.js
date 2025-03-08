@@ -14,45 +14,81 @@ document.addEventListener('DOMContentLoaded', function () {
   const spreadsheetTables = document.querySelectorAll('.spreadsheet-table');
   let sessionExpired = false; // Track session expiry
 
+  // Initialize session check
+  checkSession().then(isValid => {
+    if (!isValid) {
+      console.log("❌ No valid session found on load");
+      window.location.href = '/';
+    } else {
+      console.log("✅ Initial session check passed");
+    }
+  });
+
   async function checkSession() {
+    console.log("🔍 Checking session status...");
     try {
       const response = await fetch(`${API_BASE_URL}/keep-alive`, { 
         credentials: 'include',
-        headers: DEFAULT_HEADERS
+        headers: DEFAULT_HEADERS,
+        mode: 'cors'
       });
+      
+      console.log("🔍 Session check response status:", response.status);
+      
       if (!response.ok) {
+        console.error("❌ Session check failed:", response.status);
         sessionExpired = true;
-        alert("❌ Session expired. Please log in again.");
-        window.location.href = '/';
+        if (response.status === 403) {
+          console.log("❌ Session expired or unauthorized");
+          alert("❌ Session expired. Please log in again.");
+          window.location.href = '/';
+          return false;
+        }
         return false;
       }
+      
       const data = await response.json();
+      console.log("✅ Session check response:", data);
       return data.success;
     } catch (error) {
       console.error("❌ Failed to verify session:", error);
       return false;
     }
   }
-  setInterval(checkSession, 60000); // Check session every 60 seconds
+  
+  // Reduced interval to 30 seconds to catch session issues earlier
+  setInterval(checkSession, 30000);
 
   async function loginAdmin() {
     const password = prompt('Enter admin password:');
+    if (!password) {
+      alert('❌ Password is required');
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: DEFAULT_HEADERS,
         body: JSON.stringify({ password }),
-        credentials: 'include'
+        credentials: 'include',
+        mode: 'cors'
       });
+
       const data = await response.json();
-      if (data.success) {
+      
+      if (response.ok && data.success) {
+        console.log("✅ Login successful");
         alert('✅ Login successful! Redirecting to admin panel...');
+        sessionExpired = false;
         window.location.href = '/admin.html';
       } else {
-        alert('❌ Invalid Password');
+        console.error("❌ Login failed:", data);
+        alert(data.message || '❌ Invalid Password');
       }
     } catch (error) {
       console.error('❌ Login Error:', error);
+      alert('❌ Login failed. Please try again.');
     }
   }
 

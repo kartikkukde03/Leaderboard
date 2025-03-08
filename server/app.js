@@ -37,8 +37,8 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    secure: false, // Change to `true` if using HTTPS
-    sameSite: 'Lax'
+    secure: true, // Must be true on HTTPS
+    sameSite: 'None' // Allows cross-site requests
   }
 }));
 
@@ -46,7 +46,6 @@ app.use(session({
 async function isAuthenticated(req, res, next) {
   console.log("🔍 Checking session:", req.session);
 
-  // Manually Fetch Session from Store if Not Found
   if (!req.session.isAdmin) {
     try {
       const session = await req.sessionStore.get(req.sessionID);
@@ -58,7 +57,6 @@ async function isAuthenticated(req, res, next) {
     } catch (err) {
       console.error("❌ Error retrieving session:", err);
     }
-
     console.log("❌ Unauthorized access detected");
     return res.status(403).json({ error: 'Unauthorized. Please log in again.' });
   }
@@ -66,13 +64,6 @@ async function isAuthenticated(req, res, next) {
   console.log("✅ Admin authenticated");
   return next();
 }
-
-// ✅ Leaderboard Schema
-const leaderboardSchema = new mongoose.Schema({
-  round: String,
-  data: [{ name: String, score: Number }]
-});
-const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
 
 // ✅ Keep-Alive Route
 app.get('/keep-alive', isAuthenticated, (req, res) => {
@@ -99,11 +90,9 @@ app.get('/leaderboard', async (req, res) => {
 // ✅ Admin Login
 app.post('/login', (req, res) => {
   const { password } = req.body;
-
   if (!password) {
     return res.status(400).json({ success: false, message: 'Password required' });
   }
-
   if (password === process.env.ADMIN_PASSWORD) {
     req.session.isAdmin = true;
     req.session.save((err) => {
@@ -123,18 +112,15 @@ app.post('/login', (req, res) => {
 app.post('/update-leaderboard', isAuthenticated, async (req, res) => {
   console.log("🔍 Checking session for update-leaderboard:", req.session);
   const { round, data } = req.body;
-
   if (!round || !data) {
     return res.status(400).json({ error: 'Invalid data format. Provide round and data.' });
   }
-
   try {
     await Leaderboard.findOneAndUpdate(
       { round },
       { round, data },
       { upsert: true, new: true }
     );
-
     console.log(`✅ ${round} updated successfully!`);
     res.json({ success: true, message: `${round} updated successfully!` });
   } catch (error) {
